@@ -65,10 +65,17 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          # Node 24 + npm 12: npm's trusted publishing needs the CLI to know about OIDC at all
+          # (npm >= 11.5.1); an older npm silently falls back to "please run npm adduser".
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
           # Release builds must not resolve a stale cached dependency tree.
           package-manager-cache: false
+
+      - name: Ensure npm supports trusted publishing
+        run: |
+          npm install --global npm@12
+          npm --version
 
       # setup-node writes `_authToken=${NODE_AUTH_TOKEN}` even when no token is configured, and npm
       # then authenticates with that placeholder instead of OIDC (registry answers 404). Replace the
