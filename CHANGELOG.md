@@ -60,8 +60,8 @@ First public release. Windows only.
 - `ckit audit` — walks the screens over CDP, filters hidden-but-mounted panels by hit-testing each node,
   and reports only strings the dictionary does not cover.
 - `ckit.cmd` so a release-zip download has an entry point without a global install.
-- CI: `npm test` plus a CLI smoke pass on tag, a portable Windows zip artifact, and npm publish gated on
-  an `NPM_TOKEN` secret.
+- CI: `npm test` plus a CLI smoke pass on tag, a portable Windows zip artifact, and `npm publish` through
+  npm's OIDC trusted publishing - the repository holds no npm credential.
 
 ### Changed
 

@@ -33,18 +33,21 @@ zh-TW / ja / ko / vi 条目完整但未经母语者审校。新增语言的流�
 ## 4. 打标签发布
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0     # 触发 .github/workflows/release.yml
+git tag v0.1.1 && git push origin v0.1.1     # 触发 .github/workflows/release.yml
 ```
 
-workflow 会跑 `npm test` + CLI 冒烟，产出 `cline-kit-vX.Y.Z-win.zip` 挂到 Release。
-npm 发布走 **Trusted Publishing（OIDC）**，仓库里不放长期 token：npm 从 2026-08 起限制绕过 2FA 的 token，
-2027-01 起进一步限制直接用 token 发布，所以别把 `NPM_TOKEN` 当成长期方案。
-工作流里 `id-token: write` 已就位，`package.json` 的 `publishConfig.registry` 钉死官方 registry
-（这台机器的 `.npmrc` 指向 npmmirror，不钉会误推到镜像）；包名 `cline-kit` 实测在 npm 上空闲。
+一次 `git push --tags` 就够：workflow 跑 `npm test` + CLI 冒烟 → 产出 `cline-kit-vX.Y.Z-win.zip` 挂到
+Release → publish job 用 **npm Trusted Publishing（OIDC）** 执行 `npm publish --provenance`。
+仓库、runner、本机都不存 npm 凭据（npm 从 2026-08 起限制绕过 2FA 的 token、2027-01 起限制直接用 token
+发布，所以这里刻意不用 `NPM_TOKEN`）。
 
-一次性 bootstrap：本地 `npm login`（web 授权，不在仓库留凭据）发出第一个版本，然后在 npmjs.com 的
-包设置里把 GitHub Actions 的 trusted publisher 指向 `chentaoxing` / `Cline-kit` / `release.yml`。
-之后每个版本由 CI 用短时 OIDC 签发，仓库永远没有 npm secret。在那之前 publish job 自动跳过并留一条 notice。
+信任关系已注册好，只在 npm 侧做过一次：包 `cline-kit` 的 Trusted Publisher = `chentaoxing` /
+`Cline-kit` / `release.yml`，并勾选 "Allow npm publish"。它**不可修改**，只能删了重建；所以改名
+workflow 文件时必须同步改这里，否则 publish job 会失败。发布 job 里另外两处坑已经处理：setup-node 在
+没有 secret 时仍会写一个占位 `_authToken`，会让 npm 走 token 而不是 OIDC（registry 回 404），所以用
+一份不含 auth 行的 userconfig 顶掉它；trusted publishing 需要 npm ≥ 11.5.1，runner 的 Node 22 自带
+10.x 只会报 `ENEEDAUTH`，所以 publish job 钉 Node 24 + npm 12。
+
 发布后跑一次 `ckit update --force`，远端词典能拉到才算通。注意本机
 `%APPDATA%\cline-kit\config.json` 里的 `updateUrl` 不会被新的默认值覆盖，改地址时要一并
 `ckit config --update-url=...`。
