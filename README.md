@@ -1,9 +1,12 @@
-# cline-kit
+# Cline-kit
 
 Enhancements for the **Cline desktop app** on Windows, delivered as a runtime overlay — no patched
 binaries, no fork.
 
 [中文说明](README.zh-CN.md)
+
+*The product name is **Cline-kit**; the npm package, the on-disk folder and the `%APPDATA%` state
+directory are lowercase `cline-kit` because npm ids cannot contain capitals. The CLI is `ckit`.*
 
 **Flagship feature:** Cline's sidebar project groups only show folders that already have sessions.
 Every project you registered but have not opened yet is simply invisible. `cline-kit` keeps all of
@@ -75,7 +78,7 @@ ckit.cmd start
 **3. From source (contributing)**
 
 ```bash
-git clone https://github.com/CHANGE_ME/cline-kit.git
+git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .            # or call it directly: node src/cli.js <command>
 npm test                    # 22 checks, no dependencies
@@ -121,9 +124,13 @@ then gives you the enhanced sidebar. If you would rather keep your own launcher,
   labelled with their parent folder - `LLM (workspace)` - and every row carries the full path as its
   tooltip. Design notes: [`docs/features.zh-CN.md`](docs/features.zh-CN.md).
 * **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model
-  names, provider names, tool identifiers and code cannot be mangled. The zh-CN corpus is 476 entries
-  plus 30 pattern rules, built by combining a UI walk with extraction from the app's own source; see
-  [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md).
+  names, provider names, tool identifiers and code cannot be mangled. The corpus is 476 strings plus
+  30 pattern rules, built by combining a UI walk with extraction from the app's own source. Five
+  dictionaries ship: **zh-CN** (reference, proofread against the running app), **zh-TW**, **ja**,
+  **ko**, **vi** - complete but machine-assisted and *not* reviewed by native speakers, so a pull
+  request fixing a term is genuinely welcome. Switch with `ckit config --dictionary=ja`; the change
+  applies to the open window without a reload, and `ckit update` follows the locale you picked.
+  Authoring guide: [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md).
 
 ## Limitations
 

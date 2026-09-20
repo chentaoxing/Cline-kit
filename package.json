@@ -53,9 +53,9 @@
   "dependencies": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CHANGE_ME/cline-kit.git"
+    "url": "git+https://github.com/chentaoxing/Cline-kit.git"
   },
   "bugs": {
-    "url": "https://github.com/CHANGE_ME/cline-kit/issues"
+    "url": "https://github.com/chentaoxing/Cline-kit/issues"
   }
 }

@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 "use strict";
-// cline-kit - desktop enhancement kit for the Cline desktop app.
+// Cline-kit - desktop enhancement kit for the Cline desktop app.
 // Flagship feature: keep every registered project visible in the sidebar.
 // Optional: UI locale packs (zh-CN today; zh-TW / ja / ko / vi follow the same data format).
 const cfg = require("./config");
 
 function guard() {
   if (typeof WebSocket !== "function") {
-    console.error("cline-kit needs Node.js 20.10+ (global WebSocket). Current: " + process.version);
+    console.error("Cline-kit needs Node.js 20.10+ (global WebSocket). Current: " + process.version);
     console.error("Install a newer Node from https://nodejs.org and retry.");
     process.exit(1);
   }
 }
 
-const HELP = `cline-kit (ckit) - enhancement kit for the Cline desktop app (Windows)
+const HELP = `Cline-kit (ckit) - enhancement kit for the Cline desktop app (Windows)
 
 Usage: ckit <command> [options]
 
@@ -30,7 +30,7 @@ Usage: ckit <command> [options]
   audit            Walk the UI and list strings still without a translation
   dict             Dictionary stats and the local override file path
   config           View or set: --cline-path=... --port=... --auto-update=on|off
-                   --hide=<path> / --unhide=<path> keep folders out of the sidebar
+                   --dictionary=<locale> --hide=<path> / --unhide=<path>
 
 Main feature
   sidebar-groups   Keeps every registered project visible in the sidebar's "Projects" group.
@@ -38,8 +38,10 @@ Main feature
                    projects disappear entirely.
 
 Optional feature
-  locale zh-CN     Simplified Chinese UI (476 entries + rules; zh-TW / ja / ko / vi use the
-                   same file format and are not written yet)
+  locale packs     dictionaries/<locale>.json - whole-string replacement only, so provider names,
+                   model names and code cannot be mangled. Bundled: zh-CN (reference, 476 entries),
+                   zh-TW, ja, ko, vi. Choose one: ckit config --dictionary=ja  (ckit update then
+                   follows that locale). Only zh-CN is proofread against the running app.
 
 Examples:
   ckit start
@@ -203,6 +205,16 @@ async function main() {
     if (flags["auto-update"]) { conf.autoUpdate = String(flags["auto-update"]) !== "off"; changed = true; }
     if (flags["update-url"]) { conf.updateUrl = flags["update-url"]; changed = true; }
     if (flags["storage-key"] !== undefined) { conf.storageKey = String(flags["storage-key"]); changed = true; }
+    if (flags.dictionary) {
+      const want = flags.dictionary;
+      const have = require("./dict").available();
+      if (!have.includes(want)) {
+        console.error(`Unknown locale "${want}". Bundled dictionaries: ${have.join(", ")}`);
+        process.exitCode = 1;
+        return;
+      }
+      conf.dictionary = want; changed = true;
+    }
     if (flags["hide"]) {
       const kept = (conf.featureHide || []).slice();
       if (kept.indexOf(flags["hide"]) < 0) kept.push(flags["hide"]);
@@ -221,4 +233,4 @@ async function main() {
   console.log(HELP);
 }
 
-main().catch((e) => { console.error("cline-kit: " + e.message); process.exit(1); });
+main().catch((e) => { console.error("Cline-kit: " + e.message); process.exit(1); });

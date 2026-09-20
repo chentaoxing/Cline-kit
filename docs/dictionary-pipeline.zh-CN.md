@@ -43,3 +43,29 @@ node ../../scripts/merge-source-keys.js
 我们暂时用更轻的方案：`audit` 就是回归检测器——Cline 一升级，跑一次 `ckit audit`，未覆盖列表
 就是需要补的差量；配合源码提取，补一轮的成本远低于维护多版本文件树。等真出现"同一版本内多套文案"
 的需求再上版本化文件。
+
+## 其它语言包（zh-TW / ja / ko / vi）
+
+同一套 JSON 结构就是同一套流水线，加一门语言不需要改任何代码：
+
+```bash
+node scripts/new-locale.js sw "Kiswahili"        # 用 zh-CN 的键集生成骨架，值全部留空
+# 填值：写一份扁平映射 { "English source": "translation" }，不要手改词典本体
+node scripts/apply-locale.js sw .cache/sw-map.json
+npm test                                          # 完整性：键集一致、无空值、值≠英文、$n 合法
+node scripts/locale-switch-check.js sw             # 真实界面：不重启就换成这门语言
+```
+
+三道关卡各有分工：`new-locale.js` 保证**键**不会跑偏（它直接从基准词典复制）；`apply-locale.js`
+只写值、并报告还剩哪些空着，所以没有人需要手改 18KB 的 JSON；`npm test` 的词典检查把「条目齐不齐」
+变成机器判定，漏一条就红；`locale-switch-check.js` 才是端到端——它改 `config.json`、等常驻注入器
+装载、然后读**运行中窗口里**的那行文字，确认语言真的换过去了（引擎会把原文记在节点上，所以中途换
+语言不需要刷新页面）。
+
+zh-TW 特殊一点：`scripts/build-zh-tw.js` 先用 OpenCC `s2tw` 转字符，再套一张台湾软件术语表，最后仍需
+逐词复核（`會話/外掛程式/市集/智慧代理/重新整理` 这类是人工判断，不是字符映射能给的）。因此词典里的
+zh-TW 是「机械转换 + 人工术语校正」的产物，重跑生成脚本只会给 ja/ko/vi 那样的参考，不要把 zh-TW 再
+覆盖回去。
+
+已发布词典的**审校状态**：zh-CN 逐条对着运行中的界面校对过；zh-TW / ja / ko / vi 条目完整、术语一致，
+但没有母语者审校。这一点在 README、HELP 和 NOTICE 里都写明，欢迎直接改词的 PR。

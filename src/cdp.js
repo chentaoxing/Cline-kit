@@ -31,15 +31,17 @@ function open(url) {
   });
 }
 
-function client(ws) {
+function client(ws, timeoutMs) {
   let id = 0;
   const pending = new Map();
+  const limit = timeoutMs || 10000;
   ws.onmessage = (ev) => {
     let m;
     try { m = JSON.parse(ev.data); } catch (e) { return; }
     if (m.id && pending.has(m.id)) {
       const p = pending.get(m.id);
       pending.delete(m.id);
+      clearTimeout(p.timer);
       m.error ? p.reject(new Error(m.error.message || JSON.stringify(m.error))) : p.resolve(m.result);
     }
   };
@@ -47,7 +49,13 @@ function client(ws) {
     rpc(method, params) {
       return new Promise((resolve, reject) => {
         const i = ++id;
-        pending.set(i, { resolve, reject });
+        // A wedged or navigating renderer queues commands forever; fail loudly instead of hanging
+        // the caller, so `ckit doctor` reports FAIL rather than sitting there silently.
+        const timer = setTimeout(() => {
+          if (pending.delete(i)) reject(new Error("CDP command timed out after " + limit + "ms: " + method +
+            " (is Cline mid-navigation or frozen?)"));
+        }, limit);
+        pending.set(i, { resolve, reject, timer });
         ws.send(JSON.stringify({ id: i, method, params: params || {} }));
       });
     },

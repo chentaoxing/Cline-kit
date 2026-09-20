@@ -125,7 +125,7 @@ async function install(cfgObj, opts) {
   const touched = [];
   for (const lnk of toPoint) {
     setShortcut(lnk, "C:\\Windows\\System32\\wscript.exe", '"' + vbs + '"', found.path + ",0",
-      path.dirname(found.path), "Cline (cline-kit enhanced)");
+      path.dirname(found.path), "Cline (Cline-kit enhanced)");
     touched.push(lnk);
   }
   cfgObj.shortcutPath = touched[0];

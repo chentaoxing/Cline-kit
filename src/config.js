@@ -60,7 +60,7 @@ const DEFAULTS = {
   port: 0,
   // dictionary updates
   autoUpdate: true,
-  updateUrl: "https://raw.githubusercontent.com/CHANGE_ME/cline-kit/main/dictionaries/zh-CN.json",
+  updateUrl: "https://raw.githubusercontent.com/chentaoxing/Cline-kit/main/dictionaries/zh-CN.json",
   updateIntervalMs: 24 * 60 * 60 * 1000,
   dictionary: "zh-CN",
   // feature id -> boolean; absent keys fall back to each feature's defaultOn

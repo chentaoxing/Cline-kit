@@ -1,83 +1,66 @@
-# 发布前清单
+# 发布检查表
 
-本地内容做完、准备公开之前按顺序走一遍。前四步不做，仓库发出去就是半成品或有隐私泄露。
+面向维护者：每次发版按顺序走一遍。第 1 条是硬门槛，不过就不要推。
 
-## 1. 隐私与安全扫描（必须先过）
-
-```bash
-npm test                                   # 17 项纯逻辑自检，必须全绿
-git grep -n -I -iE "C:\\\\Users|AlphaC|%USERNAME%|gmail[.]com|陈桃行|陈韬行" -- . ':(exclude)docs/RELEASE-CHECKLIST.md'
-# 密钥形态
-git grep -n -I -E "ghp_[A-Za-z0-9]{10,}|gho_|github_pat_|client_secret" -- . ':(exclude)docs/RELEASE-CHECKLIST.md'
-# 确认这些目录没有意外被跟踪
-git ls-files | grep -E "^\.cache/|\.local\.json$|audit-report" || echo "clean"
-```
-
-后面三条命令都应为空（最后一条应打印 `clean`）。`.cache/`、`*.local.json`、`audit-report.json` 已在
-`.gitignore` 里，但**每次发布前重跑一次**——诊断脚本很容易写进真实路径。
-
-注意 `%APPDATA%\cline-kit\audit-report.json`（工具输出，不在仓库里）会把界面上看到的**账号邮箱**
-当成"未翻译字符串"记下来，别把它复制进 issue 或提交。
-
-## 2. 定名字
-
-已定：**`cline-kit`**（2026-09-20）。占用情况实测：
-
-* `cline-desktop-zh` → 已被 `JACK5920` 使用（同方向项目）
-* `cline-desktop-zh-cn` → 已被 `ExSchwi` 使用
-* `cline-kit`、`cline-kit-corpus` → npm 与账号下均空闲（发布前再核一次，空闲状态会变）
-
-npm 名必须小写。剩下要定的只有 `<owner>`：GitHub 账号名。
-
-## 3. 替换占位符
+## 1. 本地体检（硬门槛）
 
 ```bash
-# 五处 CHANGE_ME：包元数据 ×2、更新地址 ×1、README clone ×2
-git grep -n "CHANGE_ME"
+npm test                              # 24 项无依赖自检，必须全绿
+node scripts/locale-switch-check.js    # 需 Cline 正由本工具启动：五份词典逐个真机验证
+node src/cli.js doctor                 # 全绿；任何 FAIL 都表示装进窗口的东西和源码不一致
+git status --short                     # 应为空
 ```
 
-* `package.json` → `repository.url`、`bugs.url`
-* `src/config.js` → `DEFAULTS.updateUrl`（词典热更新的来源；未替换时 `update` 会明确跳过而不是打错地址）
-* `README.md` / `README.zh-CN.md` → clone 地址与 `git clone` 示例
+`npm test` 里已包含 ship-clean 检查：仓库内出现个人路径、本机用户名、GitHub token 或散落邮箱就红。
+它是自动的，但**每次发布前仍然重跑一次**——诊断脚本很容易把真实路径写进文件。
 
-替换后跑一次 `node src/cli.js update --force`，词典能拉到才算通。老版本装在 `%APPDATA%\cline-kit\config.json`
-里的 `updateUrl` 不会被 DEFAULTS 覆盖，要一并 `ckit config --update-url=...` 改本机这份。
+`%APPDATA%\cline-kit\audit-report.json`（工具输出，不在仓库里）会把界面上看到的账号邮箱当成
+"未翻译字符串"记录下来，别把它复制进 issue 或提交。
 
-## 4. 许可与归属
+## 2. 语言包
 
-* `LICENSE` 的版权行是否是你的名字
-* `NOTICE` 里的上游出处、社区致谢、图标说明是否符合事实（尤其：不要声称任何官方关系）
-* `CHANGELOG.md` 顶部版本号与 `package.json` 的 `version` 一致
+`dictionaries/` 五份词典的键集必须完全一致，这条由 `npm test` 判定（少一条就红）。
+审校状态要在 README、`--help` 与 NOTICE 里写明：只有 zh-CN 是对着运行中的界面逐条校过的，
+zh-TW / ja / ko / vi 条目完整但未经母语者审校。新增语言的流程见
+[`dictionary-pipeline.zh-CN.md`](dictionary-pipeline.zh-CN.md)。
 
-## 5. 建库与推送
+## 3. 版本与归属
+
+* `package.json` 的 `version` 与 `CHANGELOG.md` 顶部条目一致
+* `LICENSE` 版权行、`NOTICE` 的上游出处与社区致谢是否符合事实（尤其：不得声称任何官方关系）
+* 各词典自身的 `version` 独立递增（远端更新按语言分别比较）
+
+## 4. 打标签发布
 
 ```bash
-git remote add origin https://github.com/<owner>/<repo>.git
-git push -u origin main
-git tag v0.1.0 && git push origin v0.1.0     # 触发 .github/workflows/release.yml 打 zip
+git tag v0.1.0 && git push origin v0.1.0     # 触发 .github/workflows/release.yml
 ```
 
-发布到 npm 需要在仓库 Secrets 里配 `NPM_TOKEN`，否则 workflow 的 publish job 会跳过（设计上如此）。
+workflow 会跑 `npm test` + CLI 冒烟，产出 `cline-kit-vX.Y.Z-win.zip` 挂到 Release。
+npm 发布需要仓库 Secrets 里的 `NPM_TOKEN`；没有这个 secret 时 publish job 自动跳过（设计上如此）。
+发布后跑一次 `ckit update --force`，远端词典能拉到才算通。注意本机
+`%APPDATA%\cline-kit\config.json` 里的 `updateUrl` 不会被新的默认值覆盖，改地址时要一并
+`ckit config --update-url=...`。
 
-## 6. 发布后的两件事
+## 5. 发布之后
 
-* 把 `cline-kit` 的链接补进 cline/cline 的 [#12518](https://github.com/cline/cline/issues/12518)
-  与 [#13811](https://github.com/cline/cline/pull/13811) 评论（已经在那里说明过本项目，公开后应给出可点的地址）。
-* 与同一工作区里的并行会话对齐 —— **2026-09-20 已定：只做一份**。
-  `cline-sidebar-groups/`（早期脚本 + 会直接改 `src/payload.js` 的 `apply-to-overlay.js`）和
-  `cline-sidebar-projects/`（独立成品，自带 `csproj`）都已移到 `_superseded/`，行为合并进本项目的
-  `sidebar-groups` v6；`%APPDATA%\cline-sidebar-projects` 运行时目录已删。
-  以后再有会话往那边写东西，直接改 `src/features/`，不要复活归档目录。
+* 把仓库链接补进 cline/cline 的 [#12518](https://github.com/cline/cline/issues/12518)
+  与 [#13811](https://github.com/cline/cline/pull/13811)（那两处已经说明过本项目，公开后应给可点地址）。
+* 桌面版 i18n 移植 PR 仍被上游阻塞：`@cline/i18n` 只存在于 PR #13811 的 `feat/i18n-foundation` 分支，
+  2026-09-20 实测 `mergeable:false`，等它落地才有可依附的地基。
 
-## 5.5 发布前的最后体检
+## 6. 一次性决定（留档，不必重复执行）
 
-```bash
-npm test
-node src/cli.js doctor        # 全绿；任何 FAIL 都说明装的东西和源码不一致
-git status --short            # 应为空
-```
+* 名字：产品名 **Cline-kit**；npm 包名、仓库目录与 `%APPDATA%` 状态目录都是小写 `cline-kit`
+  （npm 包名不允许大写字母）。占用情况实测：`cline-desktop-zh`、`cline-desktop-zh-cn` 已被他人使用。
+* 同一工作区曾有另一份独立实现（`cline-sidebar-projects`，自带 `csproj`）和它更早的脚本目录，
+  已于 2026-09-20 合并进本项目并移入 `_superseded/`：只发一份，避免两个工具互抢 Cline 快捷方式，
+  或互相把对方的补全行判定成"原生分组"。以后要改侧边栏行为就改 `src/features/`，不要复活归档目录。
+* 有意不做：按界面文字自动判定语言（语言由词典显式决定，两处"当前语言"会互相矛盾）、
+  独立 exe（未签名单文件会被 SmartScreen/杀软拦，而注入器本就要一直开本地调试端口）、
+  按 Cline 版本拆分规则文件（用 `ckit audit` 出差量，成本远低于维护版本树）。
 
-## 7. 已知未做（发布时要在 README 里承认）
+## 7. 已知未做（README 已承认）
 
 * 仅 Windows；macOS/Linux 的注入通道不同，未实现。
 * 模型列表里每条模型的一句英文简介未覆盖（云端动态自由文本）。

@@ -12,7 +12,8 @@ const detect = require("./detect");
 // Read-only probe. Runs inside the page; returns plain data, never touches the DOM.
 const PROBE = `(function () {
   var st = window.__clineKitFeatureState || {};
-  var out = { engineBuild: window.__ckitEngineBuild || null, features: {} };
+  var s = window.__ckitStats || { scans: 0, writes: 0, restored: 0 };
+  var out = { engineBuild: window.__ckitEngineBuild || null, stats: { scans: s.scans, writes: s.writes, restored: s.restored }, features: {} };
   var ids = Object.keys(st).filter(function (k) { return /_build$/.test(k); });
   ids.forEach(function (k) {
     var id = k.slice(0, -6);
@@ -73,6 +74,19 @@ async function run() {
       : "not present in any page - Cline's DOM may have changed");
   }
 
+  // Idle-page write rate: an overlay that keeps rewriting nodes is chasing its own mutations, which
+  // freezes the webview long before anything looks wrong on screen.
+  const writesBefore = live.map((p) => p.stats && p.stats.writes).filter((v) => typeof v === "number");
+  await new Promise((r) => setTimeout(r, 3000));
+  const again = (await cdp.eachPage(port, async (api) => {
+    const raw = await evaluate(api, PROBE);
+    try { return JSON.parse(raw); } catch (e) { return null; }
+  })).map((p) => p.result).filter(Boolean);
+  const writesAfter = again.map((p) => p.stats && p.stats.writes).filter((v) => typeof v === "number");
+  const delta = writesBefore.length && writesAfter.length ? writesAfter[0] - writesBefore[0] : 0;
+  add("overlay write rate", delta < 300, delta + " DOM writes over 3 s on an idle page" +
+    (delta >= 300 ? " - the overlay looks to be reacting to its own mutations" : ""));
+
   const eng = live.map((p) => p.engineBuild).filter(Boolean);
   add("locale engine", eng.length > 0, eng.length ? "build " + eng[0] + ", dictionary v" + info.dictionaryVersion : "not installed");
   add("dictionary", info.entries > 0, info.entries + " entries, " + info.rules + " rules"
@@ -96,7 +110,7 @@ async function run() {
 function format(r) {
   const lines = r.checks.map((c) => (c.pass ? "  ok   " : "  FAIL ") + c.name + (c.detail ? "  -  " + c.detail : ""));
   if (r.hint) lines.push("  -> " + r.hint);
-  return (r.ok ? "cline-kit looks healthy\n" : "cline-kit needs attention\n") + lines.join("\n");
+  return (r.ok ? "Cline-kit looks healthy\n" : "Cline-kit needs attention\n") + lines.join("\n");
 }
 
 module.exports = { run, format, PROBE };

@@ -1,8 +1,10 @@
-# cline-kit（中文说明）
+# Cline-kit（中文说明）
 
 给 **Cline 桌面版**（Windows）加功能的运行时覆盖层——不改二进制，不 fork。
 
 [English README](README.md)
+
+*产品名写作 **Cline-kit**；npm 包名、代码目录和 `%APPDATA%` 状态目录都是小写 `cline-kit`（npm 包名不允许大写）。命令行是 `ckit`。*
 
 **主打功能：** Cline 侧边栏的「项目分组」只显示**已经有会话**的文件夹。你登记过但还没打开过的项目，
 在界面上根本不存在。cline-kit 把所有已登记项目常驻列出，样式与原生分组一致，并且可以直接从侧边栏
@@ -68,7 +70,7 @@ ckit.cmd start
 **3. 源码（要改代码时）**
 
 ```bash
-git clone https://github.com/CHANGE_ME/cline-kit.git
+git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .        # 或直接用：node src/cli.js <命令>
 npm test                # 22 项无依赖自检
@@ -99,7 +101,7 @@ ckit doctor             # 直接问运行中的窗口：增强层到底进没进
 | `ckit update` | 从 GitHub 拉取最新语言词典（`--force` 立即检查） |
 | `ckit audit` | 走查界面，列出仍是英文的字符串 |
 | `ckit dict` | 词典统计与本地覆盖文件路径 |
-| `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off` |
+| `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off`、`--dictionary=<语言>`、`--hide=<路径>` |
 
 ## 功能
 
@@ -111,8 +113,12 @@ ckit doctor             # 直接问运行中的窗口：增强层到底进没进
   两个同名项目（比如两块盘上都有 `LLM`）会带上上级目录名显示成 `LLM (workspace)`，仍然重名就加序号，
   而鼠标悬停始终是完整路径。设计说明见 [`docs/features.zh-CN.md`](docs/features.zh-CN.md)。
 * **语言包**（`dictionaries/<locale>.json`）——只做**整串精确匹配**替换，因此不会误伤模型名、服务商名、
-  工具标识和代码。zh-CN 语料为 476 条词条 + 30 条规则，来源是「界面走查 + 从应用自身源码提取」两路合并，
-  见 [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md)。
+  工具标识和代码。语料为 476 条词条 + 30 条规则，来源是「界面走查 + 从应用自身源码提取」两路合并。
+  现在随包附带 5 份词典：**zh-CN**（基准，逐条对着运行中的界面校对过）、**zh-TW**、**ja**、**ko**、
+  **vi** —— 后四份条目齐全但属于机器辅助翻译、未经母语者审校，术语有偏差欢迎提 PR 直接改。
+  切换：`ckit config --dictionary=ja`，正在打开的窗口**不需要重启或刷新**就会跟着变；
+  `ckit update` 也只更新你选的那一份。制作流程见
+  [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md)。
 
 ## 已知限制
 

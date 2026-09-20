@@ -258,6 +258,55 @@ test("no personal paths or addresses in anything we ship", () => {
   assert.deepStrictEqual(offenders, [], "ship-clean check failed:\n        " + offenders.join("\n        "));
 });
 
+// ---------------------------------------------------------------- locale packs
+test("every bundled dictionary is complete against the reference", () => {
+  const ref = JSON.parse(fs.readFileSync(dict.bundledPath("zh-CN"), "utf8"));
+  const locales = process.env.CKIT_LOCALE ? [process.env.CKIT_LOCALE] : dict.available();
+  assert.ok(locales.includes("zh-CN") || process.env.CKIT_LOCALE, "reference locale missing");
+  const keySet = (o) => Object.keys(o).sort();
+  for (const name of locales) {
+    const d = JSON.parse(fs.readFileSync(dict.bundledPath(name), "utf8"));
+    assert.ok(dict.validate(d), name + ": failed schema validation");
+    assert.strictEqual(d.language, name, name + ": language field must match the file name");
+    assert.ok(typeof d.label === "string" && d.label.length > 1, name + ": needs a display label");
+    assert.deepStrictEqual(keySet(d.entries), keySet(ref.entries), name + ": entry keys differ from zh-CN");
+    assert.strictEqual(d.clineVersion, ref.clineVersion, name + ": calibrated against a different Cline");
+    for (const k of Object.keys(d.entries)) {
+      const v = d.entries[k];
+      assert.ok(v && v.trim(), name + ": empty translation for " + JSON.stringify(k));
+      assert.notStrictEqual(v, k, name + ": untranslated (value equals the English key) " + JSON.stringify(k));
+      assert.strictEqual(v, v.trim(), name + ": translation has padding: " + JSON.stringify(k));
+    }
+    assert.deepStrictEqual(d.rules.map((r) => r.pattern), ref.rules.map((r) => r.pattern), name + ": rule set drifted");
+    d.rules.forEach((r, i) => {
+      assert.ok(r.out && r.out.trim(), name + ": rule " + i + " has no output");
+      const groups = (r.pattern.match(/\(/g) || []).length;
+      for (const m of r.out.matchAll(/\$(\d+)/g)) {
+        assert.ok(Number(m[1]) <= groups, name + ": rule " + i + " references $" + m[1] + " but the pattern has " + groups + " group(s)");
+      }
+    });
+    assert.deepStrictEqual(d.prefixes.map((p) => p.from), ref.prefixes.map((p) => p.from), name + ": prefix set drifted");
+    for (const p of d.prefixes) assert.ok(p.to && p.to.trim(), name + ": empty prefix translation for " + JSON.stringify(p.from));
+    for (const id of Object.keys(ref.featureText || {})) {
+      assert.ok(d.featureText && d.featureText[id], name + ": no featureText block for " + id);
+      assert.deepStrictEqual(keySet(d.featureText[id]), keySet(ref.featureText[id]), name + ": featureText keys differ for " + id);
+      for (const k of Object.keys(d.featureText[id])) {
+        assert.ok(d.featureText[id][k] && d.featureText[id][k].trim(), name + ": empty feature string " + id + "." + k);
+      }
+    }
+  }
+});
+
+test("the updater maps the reference URL onto the selected locale", () => {
+  const base = { updateUrl: "https://raw.githubusercontent.com/o/r/main/dictionaries/zh-CN.json" };
+  assert.strictEqual(dict.remoteUrlFor(Object.assign({ dictionary: "ja" }, base)),
+    "https://raw.githubusercontent.com/o/r/main/dictionaries/ja.json");
+  assert.strictEqual(dict.remoteUrlFor(Object.assign({ dictionary: "zh-TW" }, base)),
+    "https://raw.githubusercontent.com/o/r/main/dictionaries/zh-TW.json");
+  const placeholder = { dictionary: "ja", updateUrl: "https://raw.githubusercontent.com/CHANGE_ME/x/main/dictionaries/zh-CN.json" };
+  assert.ok(/CHANGE_ME/.test(dict.remoteUrlFor(placeholder)), "unconfigured URL stays marked");
+});
+
 console.log("");
 if (failures.length) {
   console.log(failures.length + " of " + (passed + failures.length) + " checks FAILED");

@@ -5,10 +5,9 @@
  */
 (function () {
   var VER = (DICT && DICT.version) || 1;
-  // Guard on the engine's own build hash, not just the dictionary version: editing this file
-  // changes behaviour but leaves DICT.version untouched, so a version-only guard would keep the
-  // old engine running forever.
-  var BUILD = String((DICT && DICT.engineBuild) || "v" + VER);
+  // Guard on the engine build *and* the dictionary version. Engine-only edits must re-run, and so
+  // must a locale switch or `ckit update`: those change DICT while this file stays byte-identical.
+  var BUILD = String((DICT && DICT.engineBuild) || "v" + VER) + "/d" + VER + "/" + (DICT && DICT.language);
   if (window.__ckitEngineBuild === BUILD) return;
   if (window.__ckitObserver) { try { window.__ckitObserver.disconnect(); } catch (e) { } }
   if (window.__ckitTimer) { clearInterval(window.__ckitTimer); }
@@ -48,28 +47,57 @@
   var CJK = /[一-鿿]/;
   var LATIN = /[A-Za-z]{3}/;
 
+  // Write counter: an overlay that keeps rewriting the same nodes is chasing its own mutations,
+  // which shows up as a frozen webview long before it shows up as a visual bug. `ckit doctor`
+  // samples this twice and fails when an idle page keeps taking writes.
+  var STATS = window.__ckitStats = { scans: 0, writes: 0, restored: 0 };
+
+  function norm(s) { return String(s || "").replace(/\s+/g, " ").trim(); }
+
+  // Text we replaced is remembered on the node, so switching locale (or pulling a newer dictionary)
+  // can start from the original English instead of from last run's output.
   function translateText(node) {
     var raw = node.nodeValue;
     if (!raw || raw.length > 800) return;
     var el = node.parentElement;
     if (el && SKIP[el.tagName]) return;
-    var key = raw.replace(/\s+/g, " ").trim();
-    if (key.length < 2 || !LATIN.test(key) || CJK.test(key)) return;
+    var src = raw;
+    if (node.__ckitOut != null) {
+      src = norm(raw) === norm(node.__ckitOut) ? node.__ckitSrc : raw;  // the app rewrote it: stale
+    }
+    var key = norm(src);
+    if (key.length < 2) return;
+    if (node.__ckitSrc == null && (CJK.test(key) || !LATIN.test(key))) return;
     var rep = lookup(key);
-    if (!rep || rep === key) return;
     var lead = raw.match(/^\s*/)[0];
     var trail = raw.match(/\s*$/)[0];
-    node.nodeValue = lead + rep + trail;
+    if (!rep || rep === src) {
+      if (node.__ckitSrc != null) { node.nodeValue = lead + node.__ckitSrc + trail; node.__ckitSrc = null; node.__ckitOut = null; STATS.restored++; }
+      return;
+    }
+    node.__ckitSrc = src;
+    node.__ckitOut = rep;
+    // Never write an identical value: our own mutation would wake the observer again and the two
+    // would chase each other forever (that is a frozen webview, not a slow one).
+    var next = lead + rep + trail;
+    if (next !== raw) { node.nodeValue = next; STATS.writes++; }
   }
 
   function translateEl(el) {
     if (!el || el.nodeType !== 1 || !el.getAttribute) return;
+    var keep = el.__ckitAttrSrc || (el.__ckitAttrSrc = {});
     for (var i = 0; i < ATTRS.length; i++) {
       var a = ATTRS[i];
       var v = el.getAttribute(a);
-      if (!v) continue;
-      var rep = lookup(v.replace(/\s+/g, " ").trim());
-      if (rep && rep !== v) el.setAttribute(a, rep);
+      if (!v && keep[a] == null) continue;
+      var src = keep[a] != null && norm(v) === norm(keep[a].out) ? keep[a].src : v;
+      var rep = lookup(norm(src));
+      if (!rep || rep === src) {
+        if (keep[a]) { el.setAttribute(a, keep[a].src); delete keep[a]; STATS.restored++; }
+        continue;
+      }
+      keep[a] = { src: src, out: rep };
+      if (rep !== v) { el.setAttribute(a, rep); STATS.writes++; }
     }
   }
 
@@ -77,6 +105,7 @@
     var el = root && root.nodeType ? root : document.documentElement;
     if (!el) return;
     try {
+      STATS.scans++;
       var w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null, false);
       var n;
       while ((n = w.nextNode())) {

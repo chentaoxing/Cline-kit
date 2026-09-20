@@ -116,6 +116,14 @@ async function fetchRemote(url, timeoutMs) {
   return await res.json();
 }
 
+// The configured URL points at the reference dictionary; every locale is a sibling file, so swap
+// the file name rather than asking users to configure one URL per language.
+function remoteUrlFor(cfgObj) {
+  const name = cfgObj.dictionary || "zh-CN";
+  const url = cfgObj.updateUrl || "";
+  return /CHANGE_ME/.test(url) ? url : url.replace(/zh-CN\.json(\?.*)?$/i, name + ".json$1");
+}
+
 // returns { updated, from, to, error }
 async function update(cfgObj, opts) {
   opts = opts || {};
@@ -124,13 +132,19 @@ async function update(cfgObj, opts) {
   if (!opts.force && (now - (cfgObj.lastUpdateCheck || 0)) < (cfgObj.updateIntervalMs || 86400000)) {
     return { updated: false, reason: "not due yet" };
   }
-  if (!cfgObj.updateUrl || /CHANGE_ME/.test(cfgObj.updateUrl)) {
+  const url = remoteUrlFor(cfgObj);
+  if (!url || /CHANGE_ME/.test(url)) {
     return { updated: false, reason: "no update url configured" };
   }
   cfgObj.lastUpdateCheck = now;
+  const name = cfgObj.dictionary || "zh-CN";
   try {
-    const remote = await fetchRemote(cfgObj.updateUrl);
+    const remote = await fetchRemote(url);
     if (!validate(remote)) return { updated: false, error: "remote dictionary failed validation" };
+    if (remote.language && remote.language !== name) {
+      // a 404 page or a mis-pointed URL must not overwrite the locale the user selected
+      return { updated: false, error: "remote dictionary is for " + remote.language + ", not " + name };
+    }
     const current = load(cfgObj);
     cfgObj.remoteVersion = remote.version;
     cfg.write(cfgObj);
@@ -138,7 +152,6 @@ async function update(cfgObj, opts) {
       return { updated: false, from: current.version, to: remote.version, reason: "already current" };
     }
     cfg.ensureDirs();
-    const name = cfgObj.dictionary || "zh-CN";
     fs.writeFileSync(cfg.cachedDictFile(name), JSON.stringify(remote, null, 1), "utf8");
     return { updated: true, from: current.version, to: remote.version };
   } catch (e) {
@@ -147,4 +160,12 @@ async function update(cfgObj, opts) {
   }
 }
 
-module.exports = { load, update, validate, bundledPath, nestedQuantifier };
+function available() {
+  const dir = path.join(__dirname, "..", "dictionaries");
+  try {
+    return fs.readdirSync(dir).filter((f) => /^[A-Za-z]{2,3}(-[A-Za-z]{2,4})?\.json$/.test(f))
+      .map((f) => f.replace(/\.json$/, ""));
+  } catch (e) { return []; }
+}
+
+module.exports = { load, update, validate, bundledPath, nestedQuantifier, remoteUrlFor, available };
