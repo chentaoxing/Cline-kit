@@ -9,6 +9,26 @@ function readJson(p) {
   try { return JSON.parse(fs.readFileSync(p, "utf8")); } catch (e) { return null; }
 }
 
+// Heuristic guard for catastrophic backtracking: a quantified group whose body already ends in a
+// quantifier, or alternates between quantified atoms - (a+)+ / (a+|b)+ / (a{2,})+.
+function nestedQuantifier(pattern) {
+  const s = String(pattern).replace(/\\./g, "  "); // drop escapes: \( and \) must not confuse the scan
+  for (let i = 0; i < s.length - 1; i++) {
+    if (s[i] !== ")") continue;
+    const q = s[i + 1];
+    if (q !== "*" && q !== "+" && q !== "{") continue;
+    let depth = 0, j = i;
+    for (; j >= 0; j--) {
+      if (s[j] === ")") depth++;
+      else if (s[j] === "(") { depth--; if (depth === 0) break; }
+    }
+    if (j < 0) continue;
+    const body = s.slice(j + 1, i).replace(/\s+$/, "");
+    if (/[*+}]$/.test(body) || /\|[^|]*[*+]/.test(body)) return true;
+  }
+  return false;
+}
+
 function bundledPath(name) {
   return path.join(__dirname, "..", "dictionaries", name + ".json");
 }
@@ -31,6 +51,9 @@ function validate(d) {
     if (!r || typeof r.pattern !== "string" || typeof r.out !== "string") return false;
     if (r.pattern.length > 200 || r.out.length > 200) return false;
     if (r.pattern[0] !== "^" || r.pattern[r.pattern.length - 1] !== "$") return false;
+    // Patterns reach new RegExp() in the webview, so a nested quantifier such as (a+)+ is a
+    // hang risk, not just a style problem. Reject the shape before it is ever compiled.
+    if (nestedQuantifier(r.pattern)) return false;
     try { new RegExp(r.pattern); } catch (e) { return false; }
   }
   for (const p of d.prefixes) {
@@ -124,4 +147,4 @@ async function update(cfgObj, opts) {
   }
 }
 
-module.exports = { load, update, validate, bundledPath };
+module.exports = { load, update, validate, bundledPath, nestedQuantifier };

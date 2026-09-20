@@ -71,6 +71,8 @@ then gives you the enhanced sidebar.
 | `ckit start` | Launch Cline with the overlay attached (`--restart` closes the running instance first) |
 | `ckit stop` | Stop the background injector; Cline itself is untouched |
 | `ckit status` | Detected Cline path, debug port, injector process, loaded build version |
+| `ckit doctor` | Ask the live window what is really installed: payload build, rows added, native groups |
+| `ckit attach` | Inject once into a Cline you started yourself (`--port=N`), without owning the shortcut |
 | `ckit features` | List feature plugins and whether each is on |
 | `ckit feature enable\|disable <id>` | Toggle a feature (applies within ~4 s, no restart) |
 | `ckit install` / `uninstall` | Repoint / restore your Cline shortcut |
@@ -87,7 +89,9 @@ then gives you the enhanced sidebar.
   what counts as a project on its own: a registered path that contains other registered paths, or sits
   inside the app's install directory, is treated as a container and not listed. No per-machine
   configuration is needed. If you click Cline's own sort control, your choice wins for the rest of the
-  session; otherwise the kit keeps project grouping on. Design notes:
+  session; otherwise the kit keeps project grouping on. Two projects that share a folder name are
+  labelled with their parent folder (whole path if even the parents match), and every row carries the
+  full path as its tooltip. Design notes:
   [`docs/features.zh-CN.md`](docs/features.zh-CN.md).
 * **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model
   names, provider names, tool identifiers and code cannot be mangled. The zh-CN corpus is 476 entries

@@ -41,6 +41,7 @@
     "node": ">=20.10.0"
   },
   "scripts": {
+    "test": "node scripts/selftest.js",
     "start": "node src/cli.js start",
     "status": "node src/cli.js status",
     "install-ui": "node src/cli.js install",

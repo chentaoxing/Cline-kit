@@ -6,7 +6,7 @@
 // Runs inside the webview. Config arrives as window.__clineKitFeature["sidebar-groups"].
 (function () {
   var ID = "sidebar-groups";
-  var VER = 4;                       // human-readable; hot-swap keys off CFG.__build instead
+  var VER = 5;                       // human-readable; hot-swap keys off CFG.__build instead
   var CFG = (window.__clineKitFeature && window.__clineKitFeature[ID]) || {};
   var st = window.__clineKitFeatureState = window.__clineKitFeatureState || {};
   var BUILD = String(CFG.__build || "v" + VER);
@@ -17,8 +17,15 @@
   st[ID] = VER;
 
   var KEY = "cline.code.workspace-selection.v2";
-  var INSTALL = (CFG.installDir || "").replace(/[\\/]+$/, "").toLowerCase();
-  var HIDE = (CFG.hide || []).map(function (p) { return String(p).replace(/[\\/]+$/, "").toLowerCase(); });
+  // Pure path/filtering helpers live in a sibling file that is prepended to this script by
+  // src/features/index.js and unit tested in scripts/selftest.js.
+  var L = window.__ckitSidebarLogic;
+  if (!L) {
+    try { console.warn("[cline-kit:" + ID + "] logic module missing, feature disabled"); } catch (e) { }
+    return;
+  }
+  var INSTALL = (CFG.installDir || "");
+  var HIDE = (CFG.hide || []);
   var MAX_ROWS = CFG.maxRows || 80;
   var TEXT = CFG.text || {};
   // Fallbacks are English on purpose: English is the app source language, so a feature stays
@@ -31,39 +38,13 @@
 
   function t(key, fallback) { return (TEXT && TEXT[key]) || fallback; }
 
-  var norm = function (s) { return (s || "").replace(/\s+/g, " ").trim(); };
-  var base = function (p) {
-    var s = (p || "").replace(/[\\/]+$/, "");
-    var i = Math.max(s.lastIndexOf("\\"), s.lastIndexOf("/"));
-    return i >= 0 ? s.slice(i + 1) : s;
-  };
-  var esc = function (s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
-    });
-  };
+  var norm = L.norm;
+  var base = L.base;
+  var strip = L.strip;
+  var labelsFor = L.labelsFor;
 
   function registry() {
-    try {
-      var raw = JSON.parse(localStorage.getItem(KEY) || "{}");
-      var env = ((raw.environments || {}).local) || {};
-      return { workspaces: env.workspaces || [], last: env.lastWorkspace || "" };
-    } catch (e) { return { workspaces: [], last: "" }; }
-  }
-
-  // A registered path is treated as a container (not a project) when another registered path sits
-  // inside it, or when it is the app's own install directory. That replaces the old hardcoded
-  // "skip D:\...\Programs" rule and works on any machine.
-  function isContainer(path, all) {
-    var p = path.replace(/[\\/]+$/, "").toLowerCase() + "\\";
-    for (var i = 0; i < all.length; i++) {
-      var q = all[i].replace(/[\\/]+$/, "").toLowerCase();
-      if (q !== p.slice(0, -1) && q.indexOf(p) === 0) return true;
-    }
-    var low = path.replace(/[\\/]+$/, "").toLowerCase();
-    if (INSTALL && (low === INSTALL || low.indexOf(INSTALL + "\\") === 0)) return true;
-    if (HIDE.indexOf(low) >= 0) return true;
-    return false;
+    return L.parseRegistry(localStorage.getItem(KEY));
   }
 
   function listRoot() {
@@ -191,7 +172,7 @@
     return s;
   }
 
-  function buildRow(ws, isCurrent) {
+  function buildRow(ws, label, isCurrent) {
     var wrap = document.createElement("div");
     wrap.className = "mb-1 min-w-0";
     wrap.setAttribute("data-ckit-feat", ID);
@@ -201,9 +182,9 @@
     head.type = "button";
     head.className = HEAD_CLS;
     head.setAttribute("aria-expanded", "false");
-    head.title = base(ws) + (isCurrent ? t("suffixCurrent", " (current project)") : "");
+    head.title = ws;                                  // full path: the label may be shortened
     svgInto(head, SVG_CHEVRON, CHEVRON + " -rotate-90");
-    head.appendChild(span("block min-w-0 truncate", base(ws)));
+    head.appendChild(span("block min-w-0 truncate", label));
     if (isCurrent) head.appendChild(span("ml-auto shrink-0 text-[11px] text-muted-foreground", t("current", "current")));
     wrap.appendChild(head);
 
@@ -298,17 +279,12 @@
     if (!box || !projectMode()) { clearRows(); sig = ""; return; }
     var reg = registry();
     var have = nativeNames(box);
-    var current = base(reg.last);
-    var missing = [], seen = {};
-    for (var i = 0; i < reg.workspaces.length && missing.length < MAX_ROWS; i++) {
-      var ws = reg.workspaces[i];
-      var n = base(ws);
-      if (!n || have[n] || seen[n]) continue;
-      if (isContainer(ws, reg.workspaces)) continue;
-      seen[n] = true;
-      missing.push(ws);
-    }
-    var s = missing.join("|") + "::" + current + "::" + flashMsg;
+    var currentPath = strip(reg.last).toLowerCase();
+    var missing = L.pickMissing(reg.workspaces, have, {
+      maxRows: MAX_ROWS, installDir: INSTALL, hide: HIDE
+    });
+    var label = labelsFor(missing);
+    var s = missing.map(function (p) { return p + "=" + label[p]; }).join("|") + "::" + currentPath + "::" + flashMsg;
     // Self-heal: compare what we intended against what is actually in the DOM. If anything rewrote
     // or dropped our labels (React reconciliation, another overlay, a partial render), rebuild.
     var dom = [];
@@ -317,14 +293,32 @@
       var sp = ours[k].querySelector("span");
       dom.push((ours[k].dataset.wsPath || "") + "=" + (sp ? sp.textContent : ""));
     }
-    var want = missing.map(function (p) { return p + "=" + base(p); }).join("|");
-    if (s === sig && dom.join("|") === want) return;
+    var want = missing.map(function (p) { return p + "=" + label[p]; }).join("|");
+    if (s === sig && dom.join("|") === want) { report(box, ours.length, missing.length, reg); return; }
     sig = s;
     clearRows();
-    if (!missing.length) return;
-    var frag = document.createDocumentFragment();
-    for (var j = 0; j < missing.length; j++) frag.appendChild(buildRow(missing[j], base(missing[j]) === current));
-    box.appendChild(frag);
+    if (missing.length) {
+      var frag = document.createDocumentFragment();
+      for (var j = 0; j < missing.length; j++) {
+        frag.appendChild(buildRow(missing[j], label[missing[j]], strip(missing[j]).toLowerCase() === currentPath));
+      }
+      box.appendChild(frag);
+    }
+    report(box, box.querySelectorAll(":scope > [data-ckit-feat]").length, missing.length, reg);
+  }
+
+  // Counters for `ckit doctor`: what the feature believes right now, readable from outside the
+  // closure through window.__clineKitFeatureState.
+  function report(box, rows, intended, reg) {
+    var native = 0;
+    var all = box.querySelectorAll('button[aria-expanded]');
+    for (var i = 0; i < all.length; i++) {
+      if (/h-8 w-full/.test(all[i].className) && !all[i].closest("[data-ckit-feat]")) native++;
+    }
+    st[ID + "_stats"] = {
+      version: VER, build: BUILD, registered: reg.workspaces.length,
+      nativeGroups: native, intended: intended, rows: rows, mode: "project"
+    };
   }
 
   function clearRows() {

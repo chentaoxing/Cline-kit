@@ -20,6 +20,8 @@ Usage: ckit <command> [options]
   start            Launch Cline with the overlay loaded (--restart quits a running instance first)
   stop             Stop the background injector (Cline itself is untouched)
   status           Show the Cline path, debug port, injector and loaded payload version
+  doctor           Check the live window: does each feature exist in the DOM right now?
+  attach           Inject once into a Cline that is already running with a debug port
   install          Point the Start Menu / Desktop Cline shortcuts at the enhanced launcher
   uninstall        Restore the original shortcuts
   features         List feature plugins and whether each is on
@@ -99,6 +101,29 @@ async function main() {
       shortcut: conf.shortcutPath || null,
       autoUpdate: conf.autoUpdate, updateUrl: conf.updateUrl
     }, null, 2));
+    return;
+  }
+
+  if (cmd === "doctor") {
+    const doctor = require("./doctor");
+    const r = await doctor.run();
+    console.log(doctor.format(r));
+    process.exitCode = r.ok ? 0 : 1;
+    return;
+  }
+
+  if (cmd === "attach") {
+    const port = Number(flags.port) || conf.port;
+    if (!port) { console.error("No debug port to attach to. Pass --port=NNNNN"); process.exit(1); }
+    const src = require("./payload").build(conf);
+    const r = await require("./cdp").eachPage(port, async (api) => {
+      const res = await api.rpc("Runtime.evaluate", { expression: src });
+      if (res && res.exceptionDetails) throw new Error(res.exceptionDetails.text || "evaluate failed");
+      return "ok";
+    });
+    console.log("Injected once into " + r.length + " page(s): " +
+      r.map((x) => x.error ? "FAIL " + x.error : x.result).join(", "));
+    console.log("The resident injector is not running, so a reload (Ctrl+R) drops the overlay.");
     return;
   }
 

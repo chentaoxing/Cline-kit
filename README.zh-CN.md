@@ -66,6 +66,8 @@ ckit start              # 立刻以增强模式启动 Cline
 | `ckit start` | 以增强层启动 Cline（`--restart` 先退出正在运行的实例） |
 | `ckit stop` | 结束后台注入器，不影响 Cline 本身 |
 | `ckit status` | 探测到的 Cline 路径、调试端口、注入器进程、已装载构建版本 |
+| `ckit doctor` | 直接问正在运行的窗口装了些什么：构建版本、补了几行、原生分组数 |
+| `ckit attach` | 往你自己启动、已开调试端口的 Cline 注入一次（`--port=N`），不接管快捷方式 |
 | `ckit features` | 列出功能插件与开关状态 |
 | `ckit feature enable\|disable <id>` | 开关某个插件（约 4 秒生效，无需重启） |
 | `ckit install` / `uninstall` | 改写 / 还原 Cline 快捷方式 |
@@ -81,7 +83,8 @@ ckit start              # 立刻以增强模式启动 Cline
 * **`sidebar-groups`**（默认开启）——上面说的常驻项目分组。它自己判断什么算项目：某个登记路径如果
   包含着其他登记路径，或者位于应用安装目录内，就当作容器不显示，因此**不需要按机器配置**。
   如果你亲手点了 Cline 的排序按钮，本会话内就以你的选择为准不再干预；否则增强层会持续保持分组模式。
-  设计说明见 [`docs/features.zh-CN.md`](docs/features.zh-CN.md)。
+  两个同名项目（比如两块盘上都有 `LLM`）会带上上级目录名显示，上级也重名就显示完整路径，
+  鼠标悬停始终是完整路径。设计说明见 [`docs/features.zh-CN.md`](docs/features.zh-CN.md)。
 * **语言包**（`dictionaries/<locale>.json`）——只做**整串精确匹配**替换，因此不会误伤模型名、服务商名、
   工具标识和代码。zh-CN 语料为 476 条词条 + 30 条规则，来源是「界面走查 + 从应用自身源码提取」两路合并，
   见 [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md)。

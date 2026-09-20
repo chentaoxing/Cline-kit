@@ -12,11 +12,36 @@ First public release.
 
 Renamed from `cline-zh-overlay` to **`cline-kit`**: the sidebar/project behaviour is the product, and
 localisation is an optional layer riding the same injection channel. The CLI is now `ckit` (long alias
-`cline-kit`). Runtime state moved to `%APPDATA%cline-kit` with a one-time migration of config, cache and
+`cline-kit`). Runtime state moved to `%APPDATA%\cline-kit` with a one-time migration of config, cache and
 logs from the old `cline-zh` directory. Browser globals and DOM markers were renamed to match
 (`__clineKitFeature*`, `data-ckit-feat`, `__ckitEngineBuild`); launcher files became
 `launch-cline-kit.{ps1,vbs}`. Existing installs recover by re-running `ckit install`, which repoints the
 shortcut at the new launcher.
+
+### Added
+
+- `ckit doctor` — asks the live webview what is actually installed (payload build, per-feature build,
+  rows added, native groups, dictionary source) instead of what the launcher intended, so a Cline
+  update that renames a class shows up as a FAIL rather than an empty sidebar.
+- `ckit attach --port=N` — inject once into a Cline that is already exposing a debug port, for people
+  who keep their own launcher or run another overlay and do not want this one to own the shortcut.
+- `scripts/selftest.js` (`npm test`) — 17 dependency-free checks over the path/label/container logic,
+  registry parsing, dictionary validation and payload versioning.
+- Path, label and filtering helpers moved to `src/features/sidebar-groups.logic.js`, shared by the
+  injected script and the tests.
+
+### Fixed
+
+- `sidebar-groups` dropped every project whose folder name was already in use: two workspaces called
+  `LLM` on different drives produced one row. Collisions now show `parent\name`, and if the parents
+  collide as well the full path, with the whole path in each row's tooltip.
+- Remote dictionaries are rejected when a rule pattern contains a nested quantifier (`(a+)+`), which
+  would otherwise be compiled inside the webview.
+- The release workflow still named its artifact `cline-zh-overlay`.
+- CLI output and help text are English, matching the tool's name and position; the `sidebar-groups`
+  title reads English-first.
+- Dictionary v5: dropped a `featureText` key the feature stopped using (the tooltip now carries the
+  full path). `scripts/selftest.js` fails if the dictionary and the feature's `t()` keys drift apart.
 
 ### Changed
 

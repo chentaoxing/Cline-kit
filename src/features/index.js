@@ -7,7 +7,8 @@ const path = require("path");
 const DEFS = [
   {
     id: "sidebar-groups",
-    file: "sidebar-groups.js",
+    // shared logic first, then the browser script that consumes window.__ckitSidebarLogic
+    parts: ["sidebar-groups.logic.js", "sidebar-groups.js"],
     title: "Keep every registered project in the sidebar / 侧边栏全项目常驻",
     defaultOn: true,
     // config handed to the browser script; keep it JSON-serialisable
@@ -28,15 +29,19 @@ function scriptVersion(src) {
   return m ? Number(m[1]) : 1;
 }
 
+function filesOf(def) { return def.parts || [def.file]; }
+
 function readSource(def) {
-  const p = path.join(__dirname, def.file);
-  const src = fs.readFileSync(p, "utf8");
-  return { src, version: scriptVersion(src), path: p };
+  const list = filesOf(def);
+  const src = list.map((f) => fs.readFileSync(path.join(__dirname, f), "utf8")).join("\n");
+  const main = fs.readFileSync(path.join(__dirname, list[list.length - 1]), "utf8");
+  return { src, version: scriptVersion(main), path: path.join(__dirname, list[0]) };
 }
 
 function list() {
   return DEFS.map((d) => {
-    const { version } = readSource(d);
+    let version = 0;
+    try { version = readSource(d).version; } catch (e) { version = -1; }
     return { id: d.id, title: d.title, version, defaultOn: d.defaultOn };
   });
 }
