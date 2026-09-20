@@ -115,10 +115,23 @@ npm uninstall -g cline-zh-overlay
 The dictionary is the valuable part. Run `cline-zh audit` after using the app for a while, add the
 missing strings to `dictionaries/zh-CN.json`, bump `version`, and open a PR.
 
-There is also an open request for official i18n in Cline — see
-[`docs/upstream-i18n-issue.md`](docs/upstream-i18n-issue.md), which is a draft of the feature request
-with this dictionary attached as a starting `zh-CN` corpus. Upstream support would make this tool
-unnecessary, which is the better outcome.
+There is also an active upstream request for official i18n — see
+[`docs/upstream-i18n.md`](docs/upstream-i18n.md) for the existing threads ([#12518](https://github.com/cline/cline/issues/12518),
+[#13811](https://github.com/cline/cline/pull/13811)), what we posted there, and the key finding that the
+desktop app is not in the public Cline repo. Upstream support would make this tool unnecessary, which is
+the better outcome.
+
+## Relationship to other projects
+
+**[cline-chinese](https://github.com/HybridTalentComputing/cline-chinese)** is a widely used
+(Apache-2.0, ~660 stars) **fork of the VS Code extension** with translated source. It solves a different
+problem on a different surface: it localises the IDE extension, and because it is a fork it tracks
+upstream on its own release cadence (its latest release is `v3.46.9`, behind current upstream) and
+requires installing a separate extension. It contains no desktop-app code.
+
+This project covers the **desktop app**, does not fork anything, and keeps working across Cline updates
+as long as the labels themselves don't change — but it is a runtime overlay, so it inherits the
+limitations above and is strictly a stopgap until an official locale exists.
 
 ## License
 

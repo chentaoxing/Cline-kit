@@ -104,9 +104,19 @@ npm uninstall -g cline-zh-overlay
 真正有价值的是词典。日常用一段时间后跑 `cline-zh audit`，把缺的补进 `dictionaries/zh-CN.json`，
 把 `version` 加一，提 PR。
 
-另外我们更希望官方直接支持多语言——见 [`docs/upstream-i18n-issue.md`](docs/upstream-i18n-issue.md)，
-那是给 Cline 官方写的功能请求草稿，并把这份词典作为 zh-CN 初始语料附上。官方一旦支持，这个工具就可以
-退休，那是更好的结果。
+另外官方已有进行中的多语言讨论——见 [`docs/upstream-i18n.md`](docs/upstream-i18n.md)，里面记录了现有
+议题（[#12518](https://github.com/cline/cline/issues/12518)、[#13811](https://github.com/cline/cline/pull/13811)）、
+我们提交的发言，以及一个关键结论：**桌面版源码不在公开的 Cline 仓库里**。官方一旦支持，这个工具就该退休，
+那是更好的结果。
+
+## 与同类项目的关系
+
+**[cline-chinese](https://github.com/HybridTalentComputing/cline-chinese)**（Apache-2.0，约 660 star）是
+**VS Code 插件的汉化分叉**，解决的是另一个界面上的问题：它翻译的是 IDE 扩展，而且因为是分叉，只能按自己的
+节奏跟进上游（最新 release 仍是 `v3.46.9`，落后于当前上游），需要单独安装一个扩展；其中没有桌面版代码。
+
+本项目覆盖的是**桌面版**，不 fork 任何东西，只要界面文案不改就能跟着 Cline 自动更新继续生效——但它是运行时
+覆盖层，因此带有上面那些限制，在官方语言包出现之前只是过渡方案。
 
 ## 许可
 
