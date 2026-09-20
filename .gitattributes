@@ -1,0 +1,5 @@
+# Normalise line endings so a clone on Windows does not rewrite every file on the first commit.
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.zip binary
