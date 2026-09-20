@@ -117,9 +117,9 @@ missing strings to `dictionaries/zh-CN.json`, bump `version`, and open a PR.
 
 There is also an active upstream request for official i18n — see
 [`docs/upstream-i18n.md`](docs/upstream-i18n.md) for the existing threads ([#12518](https://github.com/cline/cline/issues/12518),
-[#13811](https://github.com/cline/cline/pull/13811)), what we posted there, and the key finding that the
-desktop app is not in the public Cline repo. Upstream support would make this tool unnecessary, which is
-the better outcome.
+[#13811](https://github.com/cline/cline/pull/13811)), what we posted there, the survey of similar
+community tools, and the plan to port #13811's `@cline/i18n` into `apps/examples/desktop-app`. Upstream
+support would make this tool's translation layer unnecessary, which is the better outcome.
 
 ## Relationship to other projects
 

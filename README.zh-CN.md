@@ -106,8 +106,8 @@ npm uninstall -g cline-zh-overlay
 
 另外官方已有进行中的多语言讨论——见 [`docs/upstream-i18n.md`](docs/upstream-i18n.md)，里面记录了现有
 议题（[#12518](https://github.com/cline/cline/issues/12518)、[#13811](https://github.com/cline/cline/pull/13811)）、
-我们提交的发言，以及一个关键结论：**桌面版源码不在公开的 Cline 仓库里**。官方一旦支持，这个工具就该退休，
-那是更好的结果。
+我们提交的发言与更正、同类社区工具调研，以及把 #13811 的 `@cline/i18n` 移植进
+`apps/examples/desktop-app` 的计划。官方一旦支持，本工具的翻译层就该退休，那是更好的结果。
 
 ## 与同类项目的关系
 
