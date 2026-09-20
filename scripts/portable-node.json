@@ -1,0 +1,11 @@
+{
+  "_why": "The Node runtime bundled into cline-kit-*-portable-win.zip. Pinned by hash on purpose: this binary ships inside a release artifact other people run, so 'downloaded from nodejs.org' is not enough - the value is checked against nodejs.org's own SHASUMS256.txt before packaging, and CI fails if the two disagree.",
+  "version": "v22.23.2",
+  "file": "node-v22.23.2-win-x64.zip",
+  "url": "https://nodejs.org/dist/v22.23.2/node-v22.23.2-win-x64.zip",
+  "sha256": "1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97",
+  "shasumsUrl": "https://nodejs.org/dist/v22.23.2/SHASUMS256.txt",
+  "nodeRequirement": ">=20.10.0",
+  "license": "MIT",
+  "licenseUrl": "https://raw.githubusercontent.com/nodejs/node/v22.23.2/LICENSE"
+}

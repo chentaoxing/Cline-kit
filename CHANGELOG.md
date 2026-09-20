@@ -4,7 +4,40 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.3.0] - 2026-09-21
+
+### Added
+
+- **A portable package that needs nothing installed**: `cline-kit-vX.Y.Z-portable-win.zip` carries
+  its own Node runtime, so the whole setup is unzip-and-double-click-`install.cmd`. This closes the
+  gap every previous route had - npm, the plain zip and source all assumed Node was already on
+  `PATH`, which is exactly what someone who chose a desktop app over a command line does not have.
+  The bundled binary is pinned by SHA-256 in `scripts/portable-node.json` and CI re-checks that pin
+  against nodejs.org's own `SHASUMS256.txt` before packaging, because an unchecked 84 MB executable
+  inside a release we hand to strangers is a supply-chain risk, not a convenience. Node's MIT
+  licence and provenance travel in `THIRD-PARTY-NODE.md`.
+- `scripts/make-portable.js` assembles it, and refuses to produce a package whose runtime does not
+  report the pinned version or whose entries contain backslash paths.
+- `scripts/npm-auth.ps1` keeps the local maintenance token in the Windows Credential Manager (the
+  same store `gh` uses) instead of a plaintext `~/.npmrc`, materialising a one-off npmrc only for the
+  lifetime of the command it runs.
+- The ship-clean check now fails on an `npm_`-shaped token anywhere in the tree, and a 29th check
+  verifies the Node pin is self-consistent and satisfies `engines.node`.
+
+### Changed
+
+- The portable zip is the recommended install route in both READMEs; npm moves to second and is
+  described as what to use when you already have Node.
+
+### Known limitations
+
+- `npm deprecate cline-kit@0.1.0` cannot be done without an interactive authentication step: npm
+  returns 401 EOTP / browser-auth-required even with a bypass-2FA package token, and the website's
+  Deprecate control is all-versions. 0.1.0 therefore keeps its missing provenance on purpose - the
+  package has no external downloads and `latest` points at 0.3.0.
+
 ## [0.2.1] - 2026-09-21
+
 
 ### Changed
 

@@ -106,8 +106,12 @@ function build(sourceDir, outPath) {
   return { entries: files.length, bytes: zip.length, names: files.map((f) => f.rel) };
 }
 
-const [src, out] = process.argv.slice(2);
-if (!src || !out) { console.error("usage: node scripts/make-zip.js <sourceDir> <out.zip>"); process.exit(1); }
-const r = build(path.resolve(src), path.resolve(out));
-console.log(out + ": " + r.entries + " files, " + r.bytes + " bytes");
-r.names.forEach((n) => console.log("  " + n));
+module.exports = { build, crc32 };
+
+if (require.main === module) {
+  const [src, out] = process.argv.slice(2);
+  if (!src || !out) { console.error("usage: node scripts/make-zip.js <sourceDir> <out.zip>"); process.exit(1); }
+  const r = build(path.resolve(src), path.resolve(out));
+  console.log(out + ": " + r.entries + " files, " + r.bytes + " bytes");
+  r.names.forEach((n) => console.log("  " + n));
+}

@@ -51,14 +51,26 @@ or both.
 ## Requirements
 
 * Windows 10/11 (macOS/Linux not supported yet — see [Limitations](#limitations))
-* [Node.js](https://nodejs.org) 20.10 or newer (global `WebSocket` and `fetch`)
+* [Node.js](https://nodejs.org) 20.10 or newer (global `WebSocket` and `fetch`) — not needed if you use the
+  portable zip, which bundles its own runtime
 * The Cline desktop app installed (verified against v0.0.32)
 
 ## Install
 
-Three routes, same tool. All of them need Node.js on `PATH`; none of them touch `cline-app.exe`.
+Four routes, same tool. None of them touch `cline-app.exe`.
 
-**1. npm (recommended)**
+**1. Portable zip — nothing to install, no Node needed (recommended)**
+
+Download `cline-kit-vX.Y.Z-portable-win.zip` from
+[Releases](https://github.com/chentaoxing/Cline-kit/releases), unzip it somewhere that will stay put,
+and **double-click `install.cmd`**. That's the whole setup: it points your existing Cline shortcut at
+the kit, and from then on you open Cline exactly as before. No terminal, no PATH, and the folder
+carries its own Node runtime (see [`scripts/portable-node.json`](scripts/portable-node.json) — the
+binary's SHA-256 is pinned and re-checked against nodejs.org's own list during the build).
+
+`ckit.cmd locales` and `ckit.cmd uninstall` live in the same folder.
+
+**2. npm — if you already have Node.js 20.10+**
 
 ```bash
 npm install -g cline-kit
@@ -66,23 +78,20 @@ ckit install                # point your existing Cline shortcut at the kit laun
 ckit start                  # launch Cline with the enhancements now
 ```
 
-**2. Release zip (no global install)**
+Worth it when you want `npm update -g cline-kit` and a `ckit` on PATH.
 
-Download `cline-kit-vX.Y.Z-win.zip` from [Releases](https://github.com/chentaoxing/Cline-kit/releases), unzip anywhere, and run the bundled
-shim once from that folder:
+**3. Release zip without the runtime**
 
-```cmd
-ckit.cmd install
-ckit.cmd start
-```
+`cline-kit-vX.Y.Z-win.zip` is the same package minus the bundled Node, for anyone who would rather not
+carry an 84 MB runtime. Unzip and run `ckit.cmd install` from that folder.
 
-**3. From source (contributing)**
+**4. From source (contributing)**
 
 ```bash
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .            # or call it directly: node src/cli.js <command>
-npm test                    # 28 checks, no dependencies
+npm test                    # 29 checks, no dependencies
 ```
 
 Then in every case:

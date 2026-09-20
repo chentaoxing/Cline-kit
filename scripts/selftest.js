@@ -392,6 +392,23 @@ test("a config change alone re-injects, so a feature cannot run on stale config"
   assert.ok(a.source.includes('"current":"ja"') && b.source.includes('"current":"ko"'), "current locale must reach the feature");
 });
 
+test("the bundled Node pin is internally consistent and satisfies our engines range", () => {
+  const pin = JSON.parse(fs.readFileSync(path.join(__dirname, "portable-node.json"), "utf8"));
+  assert.ok(/^[0-9a-f]{64}$/.test(pin.sha256), "portable-node.json sha256 is not a sha256");
+  assert.ok(/^v\d+\.\d+\.\d+$/.test(pin.version), "unexpected Node version: " + pin.version);
+  assert.strictEqual(pin.file, "node-" + pin.version + "-win-x64.zip", "file name and version disagree");
+  assert.ok(pin.url.endsWith("/" + pin.version + "/" + pin.file), "download URL does not match the pin");
+  assert.ok(pin.shasumsUrl.endsWith("/" + pin.version + "/SHASUMS256.txt"), "SHASUMS URL does not match the version");
+  // The runtime we ship has to actually satisfy what package.json demands of a user's Node.
+  const want = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8")).engines.node;
+  const min = want.match(/(\d+)\.(\d+)\.(\d+)/);
+  assert.ok(min, "could not read engines.node from package.json");
+  const [maj, minr] = [Number(min[1]), Number(min[2])];
+  const [vmaj, vmin] = pin.version.slice(1).split(".").map(Number);
+  assert.ok(vmaj > maj || (vmaj === maj && vmin >= minr),
+    `bundled Node ${pin.version} is older than engines.node ${want}`);
+});
+
 console.log("");
 if (failures.length) {
   console.log(failures.length + " of " + (passed + failures.length) + " checks FAILED");

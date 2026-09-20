@@ -51,30 +51,38 @@ ckit start
 
 ## 安装
 
-三条路都是同一个工具，都要求 `PATH` 里有 Node.js，都不碰 `cline-app.exe`。
+四条路都是同一个工具，都不碰 `cline-app.exe`。用便携包的话连 Node 都不用装。
 
-**1. npm（推荐）**
+**1. 便携包 —— 不用装任何东西，也不需要 Node（推荐）**
+
+从 [Releases](https://github.com/chentaoxing/Cline-kit/releases) 下载 `cline-kit-vX.Y.Z-portable-win.zip`，
+解压到一个固定位置，**双击 `install.cmd`** 就完事：它把你的 Cline 快捷方式指向增强启动器，之后照常
+点开 Cline 即可。不用命令行、不用配 PATH，文件夹里自带 Node 运行时（版本与校验值钉在
+`scripts/portable-node.json`，构建时会拿 nodejs.org 官方的 SHASUMS256.txt 再核一遍）。
+同一个目录里的 `ckit.cmd locales` 可以换语言，`ckit.cmd uninstall` 一键还原。
+
+**2. npm —— 已经装了 Node.js 20.10+ 的人**
 
 ```bash
 npm install -g cline-kit
+ckit install                # 把现有 Cline 快捷方式指向增强启动器
+ckit start                  # 立刻带增强功能启动 Cline
 ```
 
-**2. Release 压缩包（不装到全局）**
+好处是 `npm update -g cline-kit` 升级，以及 `ckit` 直接进 PATH。
 
-从 Releases 下载 `cline-kit-vX.Y.Z-win.zip`，解压到任意目录，在该目录里跑一次自带的启动脚本：
+**3. 不带运行时的 release zip**
 
-```cmd
-ckit.cmd install
-ckit.cmd start
-```
+`cline-kit-vX.Y.Z-win.zip` 是同一个包去掉自带 Node 的版本，给不想多背 84 MB 的人用；解压后在该目录跑
+`ckit.cmd install`。
 
-**3. 源码（要改代码时）**
+**4. 源码（要改代码时）**
 
 ```bash
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .        # 或直接用：node src/cli.js <命令>
-npm test                # 28 项无依赖自检
+npm test                # 29 项无依赖自检
 ```
 
 装完统一确认一次：

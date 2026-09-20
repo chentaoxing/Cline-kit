@@ -46,6 +46,28 @@ jobs:
           # named file outside Explorer; ship through our own writer instead.
           node scripts/make-zip.js $out "$out.zip"
 
+      - name: Build the portable zip (bundles a verified Node runtime)
+        shell: pwsh
+        run: |
+          $ref = "${{ github.event.inputs.version || github.ref_name }}"
+          $pin = Get-Content scripts/portable-node.json -Raw | ConvertFrom-Json
+          Invoke-WebRequest -Uri $pin.url -OutFile node.zip
+          $actual = (Get-FileHash -Algorithm SHA256 node.zip).Hash.ToLower()
+          if ($actual -ne $pin.sha256.ToLower()) {
+            throw "node runtime hash mismatch: computed $actual, pinned $($pin.sha256)"
+          }
+          # A matching local hash only proves we got what the pin says; re-check the pin against
+          # nodejs.org's own list so a stale or edited value cannot silently ship.
+          $sums = (Invoke-WebRequest -Uri $pin.shasumsUrl -UseBasicParsing).Content
+          if ($sums -notmatch [regex]::Escape($pin.sha256) + '\s+' + [regex]::Escape($pin.file)) {
+            throw "pinned hash does not appear in nodejs.org SHASUMS256.txt for $($pin.file)"
+          }
+          Expand-Archive -Path node.zip -DestinationPath node-runtime -Force
+          $dir = (Get-ChildItem node-runtime -Directory | Select-Object -First 1).FullName
+          node scripts/make-portable.js "$dir/node.exe" "cline-kit-$ref-portable-win.zip"
+          if ($LASTEXITCODE -ne 0) { throw "make-portable.js failed" }
+          Remove-Item -Recurse -Force node.zip, node-runtime
+
       # Only a tag push can create a release; a manual dispatch just validates the build.
       - name: Attach the zip to the release
         if: startsWith(github.ref, 'refs/tags/')
