@@ -46,7 +46,10 @@ jobs:
           # named file outside Explorer; ship through our own writer instead.
           node scripts/make-zip.js $out "$out.zip"
 
-      - uses: softprops/action-gh-release@v2
+      # Only a tag push can create a release; a manual dispatch just validates the build.
+      - name: Attach the zip to the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
           files: cline-kit-*.zip
           generate_release_notes: true
