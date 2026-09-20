@@ -10,8 +10,11 @@ cline-zh feature enable  sidebar-groups
 cline-zh feature disable sidebar-groups
 ```
 
-改完约 4 秒内生效，不需要重启 Cline：注入器每轮重读配置，并比较组合版本号
-（形如 `d2|sidebar-groups:4`，词典版本和每个插件版本都在内）。
+改完约 4 秒内生效，不需要重启 Cline：注入器每轮重读配置，payload 版本形如 `d3+24c3df82e`
+（字典版本 + 整段源码哈希），任何代码或词典变动都会让它变化。
+
+升级工具本身（`git pull`）之后跑一次 `cline-zh start` 即可——常驻注入器是长驻进程，内存里还是旧模块代码，
+`start` 会比对它记录的已装载版本，发现是旧的就自动重启它。
 
 ## sidebar-groups — 侧边栏全项目常驻
 
@@ -32,7 +35,9 @@ Cline 原生的「项目分组」只列出**已经有会话**的文件夹，登�
 
 ## 写一个新插件
 
-1. 在 `src/features/` 放一个浏览器端 IIFE 文件，顶部写 `var VER = 1;`（注入器据此判断热替换）。
+1. 在 `src/features/` 放一个浏览器端 IIFE 文件。顶部的 `var VER` 只是给人看的版本号——热替换按源码
+   内容哈希自动判定（外层 payload 版本 = 字典版本 + 整段源码哈希，每个插件还会收到自己的源码哈希
+   `CFG.__build`），改代码不需要手动 bump 任何东西。
 2. 在 `src/features/index.js` 的 `DEFS` 里登记 `id / file / title / defaultOn / build(ctx)`，
    `build` 返回的 JSON 会挂到 `window.__clineZhFeature[id]`。
 3. 所有动态文本走 `CFG.text` 覆盖，不要写死中文，以便其他语言共用同一个插件。
