@@ -41,8 +41,20 @@ git tag v0.1.1 && git push origin v0.1.1     # 触发 .github/workflows/release.
 
 一次 `git push --tags` 就够：workflow 跑 `npm test` + CLI 冒烟 → 产出 `cline-kit-vX.Y.Z-win.zip` 挂到
 Release → publish job 用 **npm Trusted Publishing（OIDC）** 执行 `npm publish --provenance`。
-仓库、runner、本机都不存 npm 凭据（npm 从 2026-08 起限制绕过 2FA 的 token、2027-01 起限制直接用 token
-发布，所以这里刻意不用 `NPM_TOKEN`）。
+**CI 侧不存任何 npm 凭据**，仓库和 GitHub secrets 里也没有（npm 从 2026-08 起限制绕过 2FA 的 token、
+2027-01 起限制直接用 token 发布，所以这里刻意不用 `NPM_TOKEN`）。
+
+本机例外，是 2026-09-21 明确决定保留的：`~/.npmrc` 里存了一个 granular token
+（`cline-kit-local`，**只授权 `cline-kit` 这一个包**、读写、2026-12-20 过期），用于 CI 之外的本地维护。
+它的边界要写清楚，别当成万能钥匙：
+
+* 能用于 `npm whoami`、包级读取，以及万一 OIDC 出问题时的发布兜底；
+* **不能**做需要一次性验证码的写入——实测 `npm deprecate cline-kit@0.1.0` 回 401 `EOTP`，
+  bypass-2FA 只覆盖发布这一类操作，元数据写入仍要真人 OTP；
+* 网页端的 Deprecate 是**整包**弃用（会把所有版本一起标记），不要用它代替单版本操作。
+
+泄露处置：`npm access token` 页面删掉即可，代价上限是这一个包被冒名发版（`latest` 由 CI 管，
+删 token 后 CI 不受影响）。自检里有一条 `npm_` 特征扫描，token 一旦被误写进仓库 `npm test` 立刻变红。
 
 信任关系已注册好，只在 npm 侧做过一次：包 `cline-kit` 的 Trusted Publisher = `chentaoxing` /
 `Cline-kit` / `release.yml`，并勾选 "Allow npm publish"。它**不可修改**，只能删了重建；所以改名

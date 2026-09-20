@@ -238,6 +238,9 @@ test("no personal paths or addresses in anything we ship", () => {
   const needles = [
     { test: (b) => profileHit(b), what: "a Windows user profile path", where: null },
     { test: (b) => /ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9]{10,}/.test(b), what: "a GitHub token", where: null },
+    // npm granular tokens. This machine now keeps one in ~/.npmrc for local maintenance, and other
+    // harnesses edit this checkout, so "it would never be committed" is not a control - this is.
+    { test: (b) => new RegExp("npm_" + "[A-Za-z0-9]{20,}").test(b), what: "an npm access token", where: null },
     // an e-mail is legitimate author attribution in package.json / NOTICE / README; anywhere else it
     // is almost certainly an audit report or a screenshot note that escaped into the repo.
     { test: (b) => /[\w.+-]+@(gmail|outlook|qq|163|foxmail)\./i.test(b), what: "a personal e-mail address", where: ["src/", "scripts/", "dictionaries/", "docs/"] }
