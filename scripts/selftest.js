@@ -72,43 +72,70 @@ test("the app install directory and hidden paths are filtered too", () => {
 
 // ---------------------------------------------------------------- labels
 test("unique folder names are shown as-is", () => {
-  const out = L.labelsFor(["C:\\x\\LLM", "C:\\y\\爬虫"]);
-  assert.deepStrictEqual(out, { "C:\\x\\LLM": "LLM", "C:\\y\\爬虫": "爬虫" });
+  const out = L.labelize(["C:\\x\\LLM", "C:\\y\\爬虫"]);
+  assert.deepStrictEqual(out, [{ path: "C:\\x\\LLM", label: "LLM" }, { path: "C:\\y\\爬虫", label: "爬虫" }]);
 });
 
 test("colliding folder names gain their parent folder", () => {
-  const a = "E:\\one\\projA\\LLM";
-  const b = "D:\\two\\projB\\LLM";
-  const out = L.labelsFor([a, b]);
-  assert.strictEqual(out[a], "projA\\LLM");
-  assert.strictEqual(out[b], "projB\\LLM");
+  const out = L.labelize(["E:\\one\\projA\\LLM", "D:\\two\\projB\\LLM"]);
+  assert.deepStrictEqual(out.map((e) => e.label), ["LLM (projA)", "LLM (projB)"]);
 });
 
-test("colliding parents fall back to the whole path", () => {
-  const a = "E:\\workspace\\LLM";
-  const b = "D:\\workspace\\LLM";
-  const out = L.labelsFor([a, b]);
-  assert.strictEqual(out[a], a, "same parent name on both - the short label would not distinguish them");
-  assert.strictEqual(out[b], b);
+test("labels stay unique even when the parents collide", () => {
+  const out = L.labelize(["E:\\workspace\\LLM", "D:\\workspace\\LLM", "F:\\workspace\\LLM"]);
+  assert.deepStrictEqual(out.map((e) => e.label), ["LLM (workspace)", "LLM (2)", "LLM (3)"]);
+  assert.strictEqual(new Set(out.map((e) => e.label)).size, 3);
 });
 
 // ---------------------------------------------------------------- row picking
-test("pickMissing skips native groups, containers and duplicates", () => {
-  const native = { LLM: true };
-  const got = L.pickMissing(ALL, native, { installDir: "", hide: [] });
-  assert.ok(!got.includes(ALL[0]), "container must not be listed");
-  assert.ok(!got.includes(ALL[1]), "already shown natively");
-  assert.deepStrictEqual(got, [ALL[2], ALL[3]]);
+test("plan skips native groups, containers and duplicates", () => {
+  const got = L.plan(ALL, ["LLM"], { installDir: "", hide: [] });
+  assert.ok(!got.some((e) => e.path === ALL[0]), "container must not be listed");
+  assert.ok(!got.some((e) => e.path === ALL[1]), "already shown natively");
+  assert.deepStrictEqual(got.map((e) => e.path), [ALL[2], ALL[3]]);
   // the same path registered twice yields one row
-  assert.deepStrictEqual(L.pickMissing([ALL[3], ALL[3], ALL[2]], {}, {}), [ALL[3], ALL[2]]);
+  assert.deepStrictEqual(L.plan([ALL[3], ALL[3], ALL[2]], [], {}).map((e) => e.path), [ALL[3], ALL[2]]);
 });
 
-test("pickMissing honours maxRows and survives empty input", () => {
+test("a same-named project is never silently dropped", () => {
+  // Cline's own headers carry no path, only the folder name, so when the registry holds two
+  // different folders called LLM we cannot tell which one the native "LLM" group is. Showing both
+  // (qualified, and without the "no sessions" claim) beats hiding a real project.
+  const paths = ["D:\\chat\\LLM", "E:\\work\\LLM"];
+  const got = L.plan(paths, ["LLM"], { installDir: "" });
+  assert.deepStrictEqual(got.map((e) => e.label), ["LLM (chat)", "LLM (work)"]);
+  assert.deepStrictEqual(got.map((e) => e.path), paths);
+});
+
+test("plan honours maxRows and survives empty input", () => {
   const many = [];
   for (let i = 0; i < 50; i++) many.push("C:\\p\\proj" + i);
-  assert.strictEqual(L.pickMissing(many, {}, { maxRows: 7 }).length, 7);
-  assert.deepStrictEqual(L.pickMissing([], {}, {}), []);
-  assert.deepStrictEqual(L.pickMissing(undefined, undefined, undefined), []);
+  assert.strictEqual(L.plan(many, [], { maxRows: 7 }).length, 7);
+  assert.deepStrictEqual(L.plan([], [], {}), []);
+  assert.deepStrictEqual(L.plan(undefined, undefined, undefined), []);
+});
+
+test("pickMissing works on pre-labelled entries too", () => {
+  const entries = L.labelize(["C:\\a\\One", "C:\\b\\Two"]);
+  assert.deepStrictEqual(L.pickMissing(entries, ["Two"], {}).map((e) => e.label), ["One"]);
+});
+
+// ---------------------------------------------------------------- registry key
+test("registryKey follows the highest versioned key Cline exposes", () => {
+  assert.strictEqual(
+    L.registryKey(["something.else", "cline.code.workspace-selection.v2", "cline.code.workspace-selection.v3"]),
+    "cline.code.workspace-selection.v3");
+  assert.strictEqual(L.registryKey(["cline.code.workspace-selection.v10", "cline.code.workspace-selection.v2"]),
+    "cline.code.workspace-selection.v10");
+  assert.strictEqual(L.registryKey(["foo", "cline.code.workspace-selection"]), null);
+  assert.strictEqual(L.registryKey([]), null);
+});
+
+test("isUnder respects separators and drive letters", () => {
+  assert.ok(L.isUnder("D:\\Programs\\Cline\\app", "d:\\programs\\cline"));
+  assert.ok(L.isUnder("D:\\Programs\\Cline", "D:\\Programs\\Cline"), "equal counts as under");
+  assert.ok(!L.isUnder("D:\\Programs\\ClineX", "D:\\Programs\\Cline"), "prefix is not containment");
+  assert.ok(!L.isUnder("D:\\A", "E:\\A"));
 });
 
 test("parseRegistry survives malformed storage", () => {
@@ -184,6 +211,51 @@ test("payload version is stable and reacts to content, not to call order", () =>
   assert.ok(/^d\d+\+[0-9a-f]{9}$/.test(a), "version shape: " + a);
   const off = payload.compose(Object.assign({}, conf, { features: { "sidebar-groups": false } })).version;
   assert.notStrictEqual(a, off, "disabling a feature has to change the payload");
+});
+
+// ---------------------------------------------------------------- release hygiene
+test("no personal paths or addresses in anything we ship", () => {
+  // Patterns are assembled so this file cannot match itself.
+  const user = (process.env.USERNAME || process.env.USER || "").toLowerCase();
+  const BS = String.fromCharCode(92); // assembled so this file cannot match its own needles
+  const profileRe = new RegExp("c:[" + BS + BS + "/]{1,}users[" + BS + BS + "/]{1,}([^" + BS + "/\\s\"']{1,40})", "gi");
+  const profileHit = (body) => {
+    profileRe.lastIndex = 0;
+    let m;
+    while ((m = profileRe.exec(body))) {
+      // C:\Users\Public is a Windows well-known folder, not a personal profile
+      if (m[1].toLowerCase() !== "public") return m[1];
+    }
+    return null;
+  };
+  const needles = [
+    { test: (b) => profileHit(b), what: "a Windows user profile path", where: null },
+    { test: (b) => /ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9]{10,}/.test(b), what: "a GitHub token", where: null },
+    // an e-mail is legitimate author attribution in package.json / NOTICE / README; anywhere else it
+    // is almost certainly an audit report or a screenshot note that escaped into the repo.
+    { test: (b) => /[\w.+-]+@(gmail|outlook|qq|163|foxmail)\./i.test(b), what: "a personal e-mail address", where: ["src/", "scripts/", "dictionaries/", "docs/"] }
+  ];
+  if (user.length > 3) {
+    const re = new RegExp(user.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    needles.push({ test: (b) => re.test(b), what: "this machine's username", where: null });
+  }
+  const root = path.join(__dirname, "..");
+  const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) return [".git", "node_modules", ".cache"].includes(e.name) ? [] : walk(p);
+    return /\.(js|json|md|yml|yaml|txt|ps1|vbs)$/.test(e.name) ? [p] : [];
+  });
+  const offenders = [];
+  for (const f of walk(root)) {
+    const rel = path.relative(root, f).replace(/\\/g, "/");
+    if (rel === "scripts/selftest.js" || rel === "docs/RELEASE-CHECKLIST.md") continue;
+    const body = fs.readFileSync(f, "utf8");
+    for (const n of needles) {
+      if (n.where && !n.where.some((dir) => rel.startsWith(dir))) continue;
+      if (n.test(body)) offenders.push(rel + " -> " + n.what);
+    }
+  }
+  assert.deepStrictEqual(offenders, [], "ship-clean check failed:\n        " + offenders.join("\n        "));
 });
 
 console.log("");

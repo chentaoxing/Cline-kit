@@ -18,6 +18,8 @@ const DEFS = [
         hide: ctx.cfg.featureHide || [],
         maxRows: 80,
         groupMode: true,
+        // leave empty to follow Cline's own cline.code.workspace-selection.vN key
+        storageKey: ctx.cfg.storageKey || "",
         text: (ctx.featureText || {})[this.id] || {}
       };
     }

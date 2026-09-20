@@ -30,6 +30,7 @@ Usage: ckit <command> [options]
   audit            Walk the UI and list strings still without a translation
   dict             Dictionary stats and the local override file path
   config           View or set: --cline-path=... --port=... --auto-update=on|off
+                   --hide=<path> / --unhide=<path> keep folders out of the sidebar
 
 Main feature
   sidebar-groups   Keeps every registered project visible in the sidebar's "Projects" group.
@@ -201,6 +202,17 @@ async function main() {
     if (flags.port) { conf.port = Number(flags.port); changed = true; }
     if (flags["auto-update"]) { conf.autoUpdate = String(flags["auto-update"]) !== "off"; changed = true; }
     if (flags["update-url"]) { conf.updateUrl = flags["update-url"]; changed = true; }
+    if (flags["storage-key"] !== undefined) { conf.storageKey = String(flags["storage-key"]); changed = true; }
+    if (flags["hide"]) {
+      const kept = (conf.featureHide || []).slice();
+      if (kept.indexOf(flags["hide"]) < 0) kept.push(flags["hide"]);
+      conf.featureHide = kept;
+      changed = true;
+    }
+    if (flags["unhide"]) {
+      conf.featureHide = (conf.featureHide || []).filter((p) => p !== flags["unhide"]);
+      changed = true;
+    }
     if (changed) { cfg.write(conf); console.log("Wrote " + cfg.configFile()); }
     console.log(JSON.stringify(cfg.read(), null, 2));
     return;

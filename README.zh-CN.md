@@ -48,16 +48,41 @@ ckit start
 
 ## 安装
 
+三条路都是同一个工具，都要求 `PATH` 里有 Node.js，都不碰 `cline-app.exe`。
+
+**1. npm（推荐，发布后适用）**
+
+```bash
+npm install -g cline-kit
+```
+
+**2. Release 压缩包（不装到全局）**
+
+从 Releases 下载 `cline-kit-vX.Y.Z-win.zip`，解压到任意目录，在该目录里跑一次自带的启动脚本：
+
+```cmd
+ckit.cmd install
+ckit.cmd start
+```
+
+**3. 源码（要改代码时）**
+
 ```bash
 git clone https://github.com/CHANGE_ME/cline-kit.git
 cd cline-kit
-npm install -g .        # 或直接用：node src/cli.js
-ckit install            # 把你现有的 Cline 快捷方式指向增强启动器
-ckit start              # 立刻以增强模式启动 Cline
+npm install -g .        # 或直接用：node src/cli.js <命令>
+npm test                # 22 项无依赖自检
+```
+
+装完统一确认一次：
+
+```bash
+ckit doctor             # 直接问运行中的窗口：增强层到底进没进去
 ```
 
 `ckit install` 会在开始菜单 / 桌面找到 Cline 快捷方式，把原始目标备份进 `%APPDATA%\cline-kit\config.json`，
-再改为指向一个无黑框启动器。之后正常点开 Cline 就带增强功能。
+再改为指向一个无黑框启动器。之后正常点开 Cline 就带增强功能。想继续用自己的启动方式，就跳过 `install`，
+用 `ckit start`，或者对一个已经开着调试端口的 Cline 用 `ckit attach --port=N`。
 
 ## 命令
 
@@ -83,8 +108,8 @@ ckit start              # 立刻以增强模式启动 Cline
 * **`sidebar-groups`**（默认开启）——上面说的常驻项目分组。它自己判断什么算项目：某个登记路径如果
   包含着其他登记路径，或者位于应用安装目录内，就当作容器不显示，因此**不需要按机器配置**。
   如果你亲手点了 Cline 的排序按钮，本会话内就以你的选择为准不再干预；否则增强层会持续保持分组模式。
-  两个同名项目（比如两块盘上都有 `LLM`）会带上上级目录名显示，上级也重名就显示完整路径，
-  鼠标悬停始终是完整路径。设计说明见 [`docs/features.zh-CN.md`](docs/features.zh-CN.md)。
+  两个同名项目（比如两块盘上都有 `LLM`）会带上上级目录名显示成 `LLM (workspace)`，仍然重名就加序号，
+  而鼠标悬停始终是完整路径。设计说明见 [`docs/features.zh-CN.md`](docs/features.zh-CN.md)。
 * **语言包**（`dictionaries/<locale>.json`）——只做**整串精确匹配**替换，因此不会误伤模型名、服务商名、
   工具标识和代码。zh-CN 语料为 476 条词条 + 30 条规则，来源是「界面走查 + 从应用自身源码提取」两路合并，
   见 [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md)。
@@ -92,11 +117,16 @@ ckit start              # 立刻以增强模式启动 Cline
 ## 已知限制
 
 * **仅 Windows。** 注入依赖 WebView2 的环境变量；macOS/Linux 用 WKWebView / WebKitGTK，需要另一套机制。
+* **故意不出独立 exe。** 把 Node 打进可执行文件确实能省掉运行环境，但未签名的单文件程序会被
+  SmartScreen 和杀软拦，而注入器本来也要一直开着本地调试端口。npm 或 Release 压缩包就是官方路径。
 * **必须经由增强层启动。** 直接双击 `cline-app.exe`（或用没被改写的快捷方式）没有可注入的调试端口，
   得到的是原版界面。
 * **Cline 升级可能失效。** 文案改了，语言包会留英文；侧边栏结构改了，`sidebar-groups` 需要跟进。
   跑一次 `ckit audit` 并开 issue。
 * **模型下方的一句英文简介不覆盖**——来自云端目录的自由文本，条数随服务商变化。
+* **同名项目。** Cline 自己的分组标题只有文件夹名、没有路径，所以登记表里出现两个不同盘符下的 `LLM`
+  且其中一个已有原生分组时，无法判断哪一个才是它。此时两行都列出（带上级目录区分），并且不在这种行里
+  写「暂无会话」——不确定的事就不声明。
 * 专有名词一律不翻：Cline、服务商与模型名、工具标识、路径。
 
 ## 安全说明

@@ -29,6 +29,7 @@
   "main": "src/cli.js",
   "files": [
     "src/",
+    "ckit.cmd",
     "dictionaries/",
     "README.md",
     "README.zh-CN.md",

@@ -6,7 +6,7 @@
 // Runs inside the webview. Config arrives as window.__clineKitFeature["sidebar-groups"].
 (function () {
   var ID = "sidebar-groups";
-  var VER = 5;                       // human-readable; hot-swap keys off CFG.__build instead
+  var VER = 6;                       // human-readable; hot-swap keys off CFG.__build instead
   var CFG = (window.__clineKitFeature && window.__clineKitFeature[ID]) || {};
   var st = window.__clineKitFeatureState = window.__clineKitFeatureState || {};
   var BUILD = String(CFG.__build || "v" + VER);
@@ -16,7 +16,6 @@
   st[ID + "_build"] = BUILD;
   st[ID] = VER;
 
-  var KEY = "cline.code.workspace-selection.v2";
   // Pure path/filtering helpers live in a sibling file that is prepended to this script by
   // src/features/index.js and unit tested in scripts/selftest.js.
   var L = window.__ckitSidebarLogic;
@@ -41,10 +40,21 @@
   var norm = L.norm;
   var base = L.base;
   var strip = L.strip;
-  var labelsFor = L.labelsFor;
+  var KEY = CFG.storageKey || L.registryKey(storageKeys()) || "cline.code.workspace-selection.v2";
+
+  function storageKeys() {
+    var out = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k) out.push(k);
+    }
+    return out;
+  }
 
   function registry() {
-    return L.parseRegistry(localStorage.getItem(KEY));
+    var parsed = L.parseRegistry(localStorage.getItem(KEY));
+    parsed.key = KEY;
+    return parsed;
   }
 
   function listRoot() {
@@ -54,9 +64,11 @@
     return box && box.querySelector('button[aria-expanded]') ? box : (box || null);
   }
 
-  function nativeNames(box) {
-    var set = {};
-    if (!box) return set;
+  // Labels of the groups Cline already renders; used so we never add a row for a project that is
+  // already on screen.
+  function nativeLabels(box) {
+    var out = [];
+    if (!box) return out;
     var bs = box.querySelectorAll('button[aria-expanded]');
     for (var i = 0; i < bs.length; i++) {
       var b = bs[i];
@@ -64,9 +76,9 @@
       if (b.closest("[data-ckit-feat]")) continue; // our own rows must not hide our own rows
       var sp = b.querySelector("span");
       var name = norm(sp ? sp.textContent : b.textContent);
-      if (name) set[name] = true;
+      if (name && out.indexOf(name) < 0) out.push(name);
     }
-    return set;
+    return out;
   }
 
   function waitFor(fn, ms) {
@@ -89,10 +101,18 @@
     inp.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  function findChip(names) {
+  // The workspace chip lives in the title bar, outside the sidebar list. Match structurally rather
+  // than by pixel offset: the sidebar can be resized, docked or narrowed to icons.
+  function inSidebar(el) {
+    return !!(el.closest && (el.closest('[class*="bg-sidebar"]') || el.closest("nav")));
+  }
+
+  function findChip(labels) {
+    var wanted = {};
+    (labels || []).forEach(function (l) { wanted[l] = 1; });
     var btns = [].slice.call(document.querySelectorAll("button")).filter(function (e) {
       var r = e.getBoundingClientRect();
-      return r.left > 280 && r.width > 0 && names[norm(e.textContent)] && e.querySelector("svg");
+      return r.width > 0 && !inSidebar(e) && wanted[norm(e.textContent)] && !!e.querySelector("svg");
     });
     return btns[0] || null;
   }
@@ -104,7 +124,7 @@
     });
     if (!all.length) return null;
     var inList = all.filter(function (e) {
-      return /max-h-48/.test((e.parentElement || {}).className || "");
+      return /max-h-\d+/.test((e.parentElement || {}).className || "");
     });
     return inList[inList.length - 1] || all[all.length - 1];
   }
@@ -114,7 +134,7 @@
     if (switching) return Promise.resolve();
     switching = true;
     var prev = document.activeElement;
-    var chip = findChip(registry().workspaces.reduce(function (m, w) { m[base(w)] = 1; return m; }, {}));
+    var chip = findChip(L.labelize(registry().workspaces).map(function (e) { return e.label; }));
     var done = function (msg) {
       switching = false;
       setTimeout(render, 250);
@@ -190,7 +210,12 @@
 
     var body = document.createElement("div");
     body.className = "hidden pl-4";
-    body.appendChild(span("px-1 py-1 text-xs text-muted-foreground", t("noSessions", "No sessions yet")));
+    // A bare label means this path is definitely not on screen already (Cline headers show bare
+    // folder names), so "no sessions" is a true statement. A qualified label was disambiguated
+    // against a same-named sibling, and one of them may be the native group above - claim nothing.
+    if (label === base(ws)) {
+      body.appendChild(span("px-1 py-1 text-xs text-muted-foreground", t("noSessions", "No sessions yet")));
+    }
 
     var act = document.createElement("button");
     act.type = "button";
@@ -278,13 +303,11 @@
     var box = listRoot();
     if (!box || !projectMode()) { clearRows(); sig = ""; return; }
     var reg = registry();
-    var have = nativeNames(box);
     var currentPath = strip(reg.last).toLowerCase();
-    var missing = L.pickMissing(reg.workspaces, have, {
+    var missing = L.plan(reg.workspaces, nativeLabels(box), {
       maxRows: MAX_ROWS, installDir: INSTALL, hide: HIDE
     });
-    var label = labelsFor(missing);
-    var s = missing.map(function (p) { return p + "=" + label[p]; }).join("|") + "::" + currentPath + "::" + flashMsg;
+    var s = missing.map(function (e) { return e.path + "=" + e.label; }).join("|") + "::" + currentPath + "::" + flashMsg;
     // Self-heal: compare what we intended against what is actually in the DOM. If anything rewrote
     // or dropped our labels (React reconciliation, another overlay, a partial render), rebuild.
     var dom = [];
@@ -293,14 +316,14 @@
       var sp = ours[k].querySelector("span");
       dom.push((ours[k].dataset.wsPath || "") + "=" + (sp ? sp.textContent : ""));
     }
-    var want = missing.map(function (p) { return p + "=" + label[p]; }).join("|");
+    var want = missing.map(function (e) { return e.path + "=" + e.label; }).join("|");
     if (s === sig && dom.join("|") === want) { report(box, ours.length, missing.length, reg); return; }
     sig = s;
     clearRows();
     if (missing.length) {
       var frag = document.createDocumentFragment();
       for (var j = 0; j < missing.length; j++) {
-        frag.appendChild(buildRow(missing[j], label[missing[j]], strip(missing[j]).toLowerCase() === currentPath));
+        frag.appendChild(buildRow(missing[j].path, missing[j].label, strip(missing[j].path).toLowerCase() === currentPath));
       }
       box.appendChild(frag);
     }

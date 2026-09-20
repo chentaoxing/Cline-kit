@@ -65,7 +65,10 @@ const DEFAULTS = {
   dictionary: "zh-CN",
   // feature id -> boolean; absent keys fall back to each feature's defaultOn
   features: {},
+  // extra paths sidebar-groups must not list as projects (containers, scratch folders)
   featureHide: [],
+  // override Cline's workspace-registry localStorage key; empty = detect cline.code.workspace-selection.vN
+  storageKey: "",
   // installer state
   shortcutPath: null,
   autostart: false,

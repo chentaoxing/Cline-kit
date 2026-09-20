@@ -43,6 +43,26 @@ shortcut at the new launcher.
 - Dictionary v5: dropped a `featureText` key the feature stopped using (the tooltip now carries the
   full path). `scripts/selftest.js` fails if the dictionary and the feature's `t()` keys drift apart.
 
+### Merged in (sidebar work consolidated into this one tool)
+
+Three copies of the sidebar feature existed in the same workspace; they are now one. Absorbed from the
+standalone sibling (`cline-sidebar-projects`):
+
+- `registryKey()` follows the highest `cline.code.workspace-selection.vN` key instead of hardcoding v2,
+  so a Cline storage bump shows up as rows, not as an empty sidebar (`ckit config --storage-key=` to force).
+- `parseRegistry` drops non-string / blank entries; `isUnder()` compares whole path segments
+  (`D:\Programs\Cline` no longer matches `D:\Programs\ClineX`).
+- Workspace-chip lookup stops using a `left > 280` pixel guess and excludes anything inside the sidebar
+  container instead; the picker list matches `max-h-*` rather than `max-h-48`.
+- Labels are generated once for the whole registry (`labelize`), so they are unique by construction and a
+  same-named project that merely *looks* like a native group is no longer silently dropped.
+- A release-hygiene check joined `npm test`: a personal profile path, this machine's username, a GitHub
+  token or a stray e-mail in shipped files fails the suite (22 checks now).
+
+Deliberately not taken: its `language: auto` UI sampling (the locale is chosen explicitly through the
+dictionary, and two definitions of "current language" would disagree), its own launcher/injector/config,
+and its sort options. `run-once` maps onto `ckit attach`.
+
 ### Changed
 
 - `sidebar-groups` no longer enables project grouping once per page load. It keeps grouping on, but

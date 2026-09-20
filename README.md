@@ -52,17 +52,45 @@ or both.
 
 ## Install
 
+Three routes, same tool. All of them need Node.js on `PATH`; none of them touch `cline-app.exe`.
+
+**1. npm (recommended, once the package is published)**
+
 ```bash
-git clone https://github.com/CHANGE_ME/cline-kit.git
-cd cline-kit
-npm install -g .            # or run it directly: node src/cli.js
+npm install -g cline-kit
 ckit install                # point your existing Cline shortcut at the kit launcher
 ckit start                  # launch Cline with the enhancements now
 ```
 
+**2. Release zip (no global install)**
+
+Download `cline-kit-vX.Y.Z-win.zip` from [Releases](../../releases), unzip anywhere, and run the bundled
+shim once from that folder:
+
+```cmd
+ckit.cmd install
+ckit.cmd start
+```
+
+**3. From source (contributing)**
+
+```bash
+git clone https://github.com/CHANGE_ME/cline-kit.git
+cd cline-kit
+npm install -g .            # or call it directly: node src/cli.js <command>
+npm test                    # 22 checks, no dependencies
+```
+
+Then in every case:
+
+```bash
+ckit doctor                 # confirms the overlay is live inside the running window
+```
+
 `ckit install` locates the Cline shortcut in the Start Menu / Desktop, saves its original target in
 `%APPDATA%\cline-kit\config.json`, and repoints it at a hidden launcher. Opening Cline the normal way
-then gives you the enhanced sidebar.
+then gives you the enhanced sidebar. If you would rather keep your own launcher, skip `install` and run
+`ckit start` (or `ckit attach --port=N` against a Cline you started with a debug port).
 
 ## Usage
 
@@ -90,9 +118,8 @@ then gives you the enhanced sidebar.
   inside the app's install directory, is treated as a container and not listed. No per-machine
   configuration is needed. If you click Cline's own sort control, your choice wins for the rest of the
   session; otherwise the kit keeps project grouping on. Two projects that share a folder name are
-  labelled with their parent folder (whole path if even the parents match), and every row carries the
-  full path as its tooltip. Design notes:
-  [`docs/features.zh-CN.md`](docs/features.zh-CN.md).
+  labelled with their parent folder - `LLM (workspace)` - and every row carries the full path as its
+  tooltip. Design notes: [`docs/features.zh-CN.md`](docs/features.zh-CN.md).
 * **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model
   names, provider names, tool identifiers and code cannot be mangled. The zh-CN corpus is 476 entries
   plus 30 pattern rules, built by combining a UI walk with extraction from the app's own source; see
@@ -102,11 +129,18 @@ then gives you the enhanced sidebar.
 
 * **Windows only.** The injection route relies on a WebView2 environment variable; macOS/Linux use
   WKWebView/WebKitGTK and need a different mechanism.
+* **No standalone executable on purpose.** Packaging Node inside a `.exe` would remove the Node
+  requirement, but unsigned binaries attract SmartScreen and antivirus warnings, and the injector has
+  to keep talking to a local DevTools port anyway. npm or the zip are the supported routes.
 * **Launch through the kit.** Opening `cline-app.exe` directly (or via a shortcut that was never
   repointed) has no debug port to attach to, so you get plain Cline.
 * **Cline updates can break things.** If the app renames a label, the locale leaves it in English; if
   it restructures the sidebar, `sidebar-groups` needs updating. Run `ckit audit` and open an issue.
 * **Per-model description blurbs stay English** — free-form text from a remote provider catalogue.
+* **Same-named projects.** Cline's own group headers expose only the folder name, never the path, so if
+  the registry holds two different `LLM` folders and one already has a native group, the kit cannot tell
+  which one that is. It lists both, qualified with the parent folder, and drops the "no sessions yet"
+  line on those rows rather than asserting something it does not know.
 * Proper nouns are never translated: Cline, provider and model names, tool identifiers, paths.
 
 ## Security
