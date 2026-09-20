@@ -52,7 +52,7 @@ ckit start
 
 三条路都是同一个工具，都要求 `PATH` 里有 Node.js，都不碰 `cline-app.exe`。
 
-**1. npm（推荐，发布后适用）**
+**1. npm（推荐）**
 
 ```bash
 npm install -g cline-kit

@@ -59,9 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
-    env:
-      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      id-token: write        # OIDC to npm; no NPM_TOKEN secret exists in this repository
     steps:
       - uses: actions/checkout@v4
 
@@ -69,25 +67,10 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
+          # Release builds must not resolve a stale cached dependency tree.
+          package-manager-cache: false
 
-      # A missing secret arrives as null, and `null != ''` is true in Actions expressions, so
-      # compute an explicit true/false here and branch on it. (Escaped quotes inside a one-line
-      # echo are the trap: `[ -n \"\" ]` tests a two-character string and is always true.)
-      - name: Decide whether npm publishing is configured
-        id: gate
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "$NPM_TOKEN" ]; then
-            echo can=false >> "$GITHUB_OUTPUT"
-          else
-            echo can=true >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Publish to npm
-        if: steps.gate.outputs.can == 'true'
+      # npm picks up the OIDC identity from the runner (id-token: write) because this package has a
+      # trusted publisher registered for chentaoxing / Cline-kit / release.yml. No credential here.
+      - name: Publish to npm via OIDC trusted publishing
         run: npm publish --provenance --access public
-
-      - name: npm publish skipped
-        if: steps.gate.outputs.can != 'true'
-        run: echo "::notice::No NPM_TOKEN secret - add it under Settings -> Secrets and variables -> Actions to publish cline-kit to npm."

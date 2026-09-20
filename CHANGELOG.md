@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.1.1] - 2026-09-20
+
+### Changed
+
+- First npm publication is live: `cline-kit@0.1.0` was bootstrapped with a one-time granular token
+  that was deleted immediately afterwards, and the package now carries an **OIDC trusted publisher**
+  (`chentaoxing / Cline-kit / release.yml`). Every later version is published by the release
+  workflow itself - no npm token or repository secret exists or is needed.
+- `publishConfig` pins `registry.npmjs.org` so a contributor whose `.npmrc` points at a mirror cannot
+  publish to the wrong place.
+
 ## [0.1.0] - 2026-09-20
 
 First public release. Windows only.

@@ -57,7 +57,7 @@ or both.
 
 Three routes, same tool. All of them need Node.js on `PATH`; none of them touch `cline-app.exe`.
 
-**1. npm (recommended, once the package is published)**
+**1. npm (recommended)**
 
 ```bash
 npm install -g cline-kit
