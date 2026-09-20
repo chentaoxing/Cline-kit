@@ -17,7 +17,7 @@ const DEFS = [
         hide: ctx.cfg.featureHide || [],
         maxRows: 80,
         groupMode: true,
-        text: {}
+        text: (ctx.featureText || {})[this.id] || {}
       };
     }
   }
@@ -51,11 +51,12 @@ function enabledSet(cfgObj) {
   return out;
 }
 
-function resolve(cfgObj) {
+function resolve(cfgObj, dictObj) {
   const on = enabledSet(cfgObj);
   const ctx = {
     cfg: cfgObj,
-    installDir: cfgObj.clinePath ? path.dirname(cfgObj.clinePath) : ""
+    installDir: cfgObj.clinePath ? path.dirname(cfgObj.clinePath) : "",
+    featureText: (dictObj && dictObj.featureText) || {}
   };
   const picked = [];
   for (const d of DEFS) {

@@ -19,7 +19,7 @@ function hash12(s) {
 
 function compose(cfgObj) {
   const d = dict.load(cfgObj);
-  const { picked } = features.resolve(cfgObj);
+  const { picked } = features.resolve(cfgObj, d);
   const parts = ["const DICT = " + json(d) + ";", ENGINE];
 
   for (const f of picked) {

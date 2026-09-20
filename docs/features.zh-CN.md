@@ -40,7 +40,8 @@ Cline 原生的「项目分组」只列出**已经有会话**的文件夹，登�
    `CFG.__build`），改代码不需要手动 bump 任何东西。
 2. 在 `src/features/index.js` 的 `DEFS` 里登记 `id / file / title / defaultOn / build(ctx)`，
    `build` 返回的 JSON 会挂到 `window.__clineZhFeature[id]`。
-3. 所有动态文本走 `CFG.text` 覆盖，不要写死中文，以便其他语言共用同一个插件。
+3. 插件内所有动态文本用 `t("key", "English fallback")` 取，**兜底写英文**（英文是应用的源语言，没有
+   对应语言包时插件仍可读）。译文放在词典的 `featureText[<id>]` 里，注册表会注入成 `CFG.text`。
 4. 自己插入的 DOM 打上 `data-czh-feat="<id>"`，并在扫描时排除自身，否则会和自己的 MutationObserver
    互相触发。
 

@@ -37,11 +37,27 @@ function validate(d) {
     if (!p || typeof p.from !== "string" || typeof p.to !== "string") return false;
     if (p.from.length > 100 || p.to.length > 100) return false;
   }
+  // featureText is optional, but when present it must be id -> key -> string
+  if (d.featureText !== undefined) {
+    if (!d.featureText || typeof d.featureText !== "object" || Array.isArray(d.featureText)) return false;
+    for (const fid of Object.keys(d.featureText)) {
+      const block = d.featureText[fid];
+      if (!block || typeof block !== "object" || Array.isArray(block)) return false;
+      for (const k of Object.keys(block)) {
+        if (typeof block[k] !== "string" || block[k].length > 400) return false;
+      }
+      if (Object.keys(block).length > 200) return false;
+    }
+  }
   return true;
 }
 
 function merge(base, extra) {
   if (!extra) return base;
+  const featureText = Object.assign({}, base.featureText || {}, extra.featureText || {});
+  for (const id of Object.keys(featureText)) {
+    featureText[id] = Object.assign({}, (base.featureText || {})[id] || {}, (extra.featureText || {})[id] || {});
+  }
   const out = {
     version: Math.max(base.version || 0, extra.version || 0),
     language: base.language,
@@ -51,6 +67,7 @@ function merge(base, extra) {
     prefixes: (base.prefixes || []).concat((extra.prefixes || []).filter((p) => !(base.prefixes || []).some((b) => b.from === p.from))),
     rules: (base.rules || []).concat((extra.rules || []).filter((r) => !(base.rules || []).some((b) => b.pattern === r.pattern)))
   };
+  if (Object.keys(featureText).length) out.featureText = featureText;
   return out;
 }
 

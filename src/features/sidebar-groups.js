@@ -21,6 +21,9 @@
   var HIDE = (CFG.hide || []).map(function (p) { return String(p).replace(/[\\/]+$/, "").toLowerCase(); });
   var MAX_ROWS = CFG.maxRows || 80;
   var TEXT = CFG.text || {};
+  // Fallbacks are English on purpose: English is the app source language, so a feature stays
+  // readable when a locale has no featureText block yet. Translations arrive via CFG.text,
+  // which the registry fills from dictionaries/<locale>.json -> featureText[<id>].
 
   var CHEVRON = "lucide lucide-chevron-down size-3.5 shrink-0 transition-transform";
   var HEAD_CLS = "flex h-8 w-full min-w-0 items-center gap-1.5 rounded-md px-1 text-left text-sm font-medium text-sidebar-foreground hover:bg-surface-hover-lighter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring";
@@ -139,7 +142,7 @@
       if (msg) flash(msg);
       return Promise.resolve();
     };
-    if (!chip) return done(t("errNoChip", "未找到工作区按钮"));
+    if (!chip) return done(t("errNoChip", "Could not find the workspace button"));
     chip.click();
     return waitFor(function () {
       var ins = document.querySelectorAll("input");
@@ -148,19 +151,19 @@
       }
       return null;
     }, 2000).then(function (inp) {
-      if (!inp) { chip.click(); return done(t("errNoSearch", "未找到工作区搜索框")); }
+      if (!inp) { chip.click(); return done(t("errNoSearch", "Could not find the workspace search box")); }
       setNativeValue(inp, path);
       return waitFor(function () { return findRow(path); }, 2200).then(function (row) {
         if (!row) {
           ["keydown", "keyup"].forEach(function (type) {
             inp.dispatchEvent(new KeyboardEvent(type, { key: "Escape", code: "Escape", bubbles: true }));
           });
-          return done(t("errNotListed", "列表里没有该项目"));
+          return done(t("errNotListed", "That project is not in the list"));
         }
         row.click();
         return done(null);
       });
-    }).catch(function () { return done(t("errSwitch", "切换失败")); });
+    }).catch(function () { return done(t("errSwitch", "Switch failed")); });
   }
 
   var flashMsg = "";
@@ -198,21 +201,21 @@
     head.type = "button";
     head.className = HEAD_CLS;
     head.setAttribute("aria-expanded", "false");
-    head.title = base(ws) + (isCurrent ? t("suffixCurrent", "（当前项目）") : "");
+    head.title = base(ws) + (isCurrent ? t("suffixCurrent", " (current project)") : "");
     svgInto(head, SVG_CHEVRON, CHEVRON + " -rotate-90");
     head.appendChild(span("block min-w-0 truncate", base(ws)));
-    if (isCurrent) head.appendChild(span("ml-auto shrink-0 text-[11px] text-muted-foreground", t("current", "当前")));
+    if (isCurrent) head.appendChild(span("ml-auto shrink-0 text-[11px] text-muted-foreground", t("current", "current")));
     wrap.appendChild(head);
 
     var body = document.createElement("div");
     body.className = "hidden pl-4";
-    body.appendChild(span("px-1 py-1 text-xs text-muted-foreground", t("noSessions", "暂无会话")));
+    body.appendChild(span("px-1 py-1 text-xs text-muted-foreground", t("noSessions", "No sessions yet")));
 
     var act = document.createElement("button");
     act.type = "button";
     act.className = ACT_CLS;
     svgInto(act, SVG_FOLDER, "size-3.5 shrink-0");
-    act.appendChild(span(null, t("switchAndNew", "切到该项目并新建会话")));
+    act.appendChild(span(null, t("switchAndNew", "Open this project and start a session")));
     act.addEventListener("click", function (ev) { ev.stopPropagation(); switchWorkspace(ws); });
     body.appendChild(act);
 
@@ -234,12 +237,26 @@
   }
 
   function projectMode() {
-    var labels = {};
-    labels[t("projects", "项目分组")] = true;
-    labels["Projects"] = true;
     var btns = document.querySelectorAll("button");
+    var headerLabels = {};
+    headerLabels[t("projects", "Projects")] = true;
+    headerLabels["Projects"] = true;
+    var sawSortControl = false;
     for (var i = 0; i < btns.length; i++) {
-      if (labels[norm(btns[i].textContent)]) return true;
+      var a = btns[i].getAttribute("aria-label") || "";
+      // Prefer the sort control's own label: it states the current mode and survives restyling.
+      if (/会话排序|Sort sessions/i.test(a)) {
+        sawSortControl = true;
+        if (/项目|Project/i.test(a)) return true;
+        if (/时间|Time/i.test(a)) return false;
+      }
+      if (headerLabels[norm(btns[i].textContent)]) return true;
+    }
+    if (!sawSortControl) {
+      // no sort control found at all (different Cline build): fall back to the visible header only
+      for (var j = 0; j < btns.length; j++) {
+        if (headerLabels[norm(btns[j].textContent)]) return true;
+      }
     }
     return false;
   }
