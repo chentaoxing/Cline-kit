@@ -71,12 +71,18 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       # A missing secret arrives as null, and `null != ''` is true in Actions expressions, so
-      # compare an explicit string instead of comparing the variable to ''.
+      # compute an explicit true/false here and branch on it. (Escaped quotes inside a one-line
+      # echo are the trap: `[ -n \"\" ]` tests a two-character string and is always true.)
       - name: Decide whether npm publishing is configured
         id: gate
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: echo "can=$([ -n \"${NPM_TOKEN:-}\" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo can=false >> "$GITHUB_OUTPUT"
+          else
+            echo can=true >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Publish to npm
         if: steps.gate.outputs.can == 'true'
