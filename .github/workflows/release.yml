@@ -70,10 +70,18 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Publish to npm (skipped until NPM_TOKEN is set)
-        if: ${{ env.NODE_AUTH_TOKEN != '' }}
+      # A missing secret arrives as null, and `null != ''` is true in Actions expressions, so
+      # compare an explicit string instead of comparing the variable to ''.
+      - name: Decide whether npm publishing is configured
+        id: gate
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: echo "can=$([ -n \"${NPM_TOKEN:-}\" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to npm
+        if: steps.gate.outputs.can == 'true'
         run: npm publish --provenance --access public
 
       - name: npm publish skipped
-        if: ${{ env.NODE_AUTH_TOKEN == '' }}
-        run: echo "No NPM_TOKEN secret; add it under Settings -> Secrets and variables -> Actions to publish."
+        if: steps.gate.outputs.can != 'true'
+        run: echo "::notice::No NPM_TOKEN secret - add it under Settings -> Secrets and variables -> Actions to publish cline-kit to npm."
