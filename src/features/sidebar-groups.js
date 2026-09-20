@@ -296,7 +296,16 @@
       missing.push(ws);
     }
     var s = missing.join("|") + "::" + current + "::" + flashMsg;
-    if (s === sig && box.querySelector("[data-czh-feat]")) return;
+    // Self-heal: compare what we intended against what is actually in the DOM. If anything rewrote
+    // or dropped our labels (React reconciliation, another overlay, a partial render), rebuild.
+    var dom = [];
+    var ours = box.querySelectorAll(":scope > [data-czh-feat]");
+    for (var k = 0; k < ours.length; k++) {
+      var sp = ours[k].querySelector("span");
+      dom.push((ours[k].dataset.wsPath || "") + "=" + (sp ? sp.textContent : ""));
+    }
+    var want = missing.map(function (p) { return p + "=" + base(p); }).join("|");
+    if (s === sig && dom.join("|") === want) return;
     sig = s;
     clearRows();
     if (!missing.length) return;

@@ -5,9 +5,14 @@
  */
 (function () {
   var VER = (DICT && DICT.version) || 1;
-  if (window.__zhUIVersion === VER) return;
+  // Guard on the engine's own build hash, not just the dictionary version: editing this file
+  // changes behaviour but leaves DICT.version untouched, so a version-only guard would keep the
+  // old engine running forever.
+  var BUILD = String((DICT && DICT.engineBuild) || "v" + VER);
+  if (window.__zhUIBuild === BUILD) return;
   if (window.__zhUIObserver) { try { window.__zhUIObserver.disconnect(); } catch (e) { } }
   if (window.__zhUITimer) { clearInterval(window.__zhUITimer); }
+  window.__zhUIBuild = BUILD;
   window.__zhUIVersion = VER;
 
   var ENTRIES = DICT.entries || {};

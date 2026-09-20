@@ -19,6 +19,9 @@ function hash12(s) {
 
 function compose(cfgObj) {
   const d = dict.load(cfgObj);
+  // the engine guards on its own build hash so code edits hot-swap even when the dictionary
+  // version is unchanged
+  d.engineBuild = hash12(ENGINE);
   const { picked } = features.resolve(cfgObj, d);
   const parts = ["const DICT = " + json(d) + ";", ENGINE];
 
