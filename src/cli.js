@@ -2,8 +2,9 @@
 "use strict";
 // Cline-kit - desktop enhancement kit for the Cline desktop app.
 // Flagship feature: keep every registered project visible in the sidebar.
-// Optional: UI locale packs (zh-CN today; zh-TW / ja / ko / vi follow the same data format).
+// Optional: UI locale packs (zh-CN reference; zh-TW / ja / ko / vi ship the same key set).
 const cfg = require("./config");
+const fs = require("fs");
 
 function guard() {
   if (typeof WebSocket !== "function") {
@@ -26,6 +27,7 @@ Usage: ckit <command> [options]
   uninstall        Restore the original shortcuts
   features         List feature plugins and whether each is on
   feature          Toggle a plugin: ckit feature enable|disable <id>
+  locales          List the UI languages that ship with the kit, and switch between them
   update           Fetch the latest locale dictionary from GitHub (skipped when offline)
   audit            Walk the UI and list strings still without a translation
   dict             Dictionary stats and the local override file path
@@ -40,13 +42,16 @@ Main feature
 Optional feature
   locale packs     dictionaries/<locale>.json - whole-string replacement only, so provider names,
                    model names and code cannot be mangled. Bundled: zh-CN (reference, 476 entries),
-                   zh-TW, ja, ko, vi. Choose one: ckit config --dictionary=ja  (ckit update then
-                   follows that locale). Only zh-CN is proofread against the running app.
+                   zh-TW, ja, ko, vi. Pick one with 'ckit locales' (lists + switches); the older
+                   'ckit config --dictionary=ja' does the same. 'ckit update' then follows that
+                   locale. Only zh-CN is proofread against the running app.
 
 Examples:
   ckit start
   ckit install
   ckit features
+  ckit locales
+  ckit locales ja
   ckit feature disable sidebar-groups
   ckit config --cline-path "D:\\Programs\\Cline\\cline-app.exe"
 `;
@@ -60,6 +65,22 @@ function parseFlags(argv) {
     else rest.push(a);
   }
   return { flags, rest };
+}
+
+// Language choice is a per-install decision, so say where to change it once per
+// setup path instead of hiding it in the README. Returns nothing; prints itself.
+function languageTip(conf, showOnce) {
+  if (showOnce) {
+    if (conf.hintLanguageShown) return;
+    conf.hintLanguageShown = true;
+    cfg.write(conf);
+  }
+  const dict = require("./dict");
+  let codes = [];
+  try { codes = dict.available(); } catch (e) { codes = []; }
+  const current = conf.dictionary || "zh-CN";
+  console.log(`Interface language: ${current}  (bundled: ${codes.join(", ") || current})`);
+  console.log("  list / switch with: ckit locales        e.g. ckit locales ja");
 }
 
 async function main() {
@@ -80,6 +101,7 @@ async function main() {
     console.log(out.debugPortAlive
       ? `Cline is up (port ${out.port}, path from ${out.source}) and the overlay is loaded.`
       : `Warning: Cline started but port ${out.port} is not answering; the overlay may not be loaded.`);
+    if (out.debugPortAlive) languageTip(conf, true);
     if (!out.debugPortAlive) process.exitCode = 1;
     return;
   }
@@ -136,6 +158,7 @@ async function main() {
     r.shortcuts.forEach((s) => console.log("  " + s));
     console.log("Launcher: " + r.launcher);
     console.log("Open Cline from those shortcuts from now on; `ckit uninstall` restores them.");
+    languageTip(cfg.read(), false);
     return;
   }
 
@@ -189,6 +212,36 @@ async function main() {
     conf2.features = Object.assign({}, conf2.features || {}, { [id]: action === "enable" });
     cfg.write(conf2);
     console.log(`${id} -> ${action === "enable" ? "enabled" : "disabled"} (the injector picks it up within ~4s)`);
+    return;
+  }
+
+  if (cmd === "locales" || cmd === "locale") {
+    const dict = require("./dict");
+    const conf2 = cfg.read();
+    const have = dict.available();
+    const target = argv.slice(1).filter((a) => !a.startsWith("--"))[0];
+    if (target) {
+      if (!have.includes(target)) {
+        console.error(`Unknown locale "${target}". Bundled: ${have.join(", ")}`);
+        process.exitCode = 1;
+        return;
+      }
+      conf2.dictionary = target;
+      cfg.write(conf2);
+      console.log(`Language -> ${target} (the injector applies it within ~4 s, no restart needed)`);
+      console.log("Cline must be running through cline-kit for the open window to change; otherwise it");
+      console.log("applies the next time you start it with `ckit start`.");
+      return;
+    }
+    console.log("Bundled UI languages (switch with: ckit locales <code>):\n");
+    for (const code of have) {
+      const d = JSON.parse(fs.readFileSync(dict.bundledPath(code), "utf8"));
+      const n = Object.keys(d.entries || {}).length;
+      const active = (conf2.dictionary || "zh-CN") === code;
+      console.log(`  ${active ? "*  " : "   "}${code.padEnd(7)} ${(d.label || "").padEnd(12)} ${String(n).padStart(4)} strings  v${d.version}`);
+    }
+    console.log("\nOnly zh-CN is proofread against the running app; the others are complete but not");
+    console.log("reviewed by native speakers - see dictionaries/ if you want to fix a term.");
     return;
   }
 

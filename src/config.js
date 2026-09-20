@@ -73,7 +73,9 @@ const DEFAULTS = {
   shortcutPath: null,
   autostart: false,
   lastUpdateCheck: 0,
-  remoteVersion: null
+  remoteVersion: null,
+  // one-off: `ckit start` points at `ckit locales` the first time it succeeds
+  hintLanguageShown: false
 };
 
 function read() {

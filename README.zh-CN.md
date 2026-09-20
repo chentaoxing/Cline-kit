@@ -10,8 +10,8 @@
 在界面上根本不存在。cline-kit 把所有已登记项目常驻列出，样式与原生分组一致，并且可以直接从侧边栏
 切进一个还没有会话的项目。
 
-**附属功能：** 界面语言包（目前简体中文；繁體中文 / 日本語 / 한국어 / Tiếng Việt 用同一套格式）。
-语言包之所以在这里，是因为同一条注入通道顺带能承载它——它不是这个项目存在的理由。
+**附属功能：** 界面语言包，随包 5 份：**zh-CN**（基准，逐条对着界面校过）、繁體中文 / 日本語 /
+한국어 / Tiếng Việt。语言包之所以在这里，是因为同一条注入通道顺带能承载它——它不是这个项目存在的理由。
 
 ## 要解决的问题
 
@@ -73,13 +73,14 @@ ckit.cmd start
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .        # 或直接用：node src/cli.js <命令>
-npm test                # 22 项无依赖自检
+npm test                # 25 项无依赖自检
 ```
 
 装完统一确认一次：
 
 ```bash
 ckit doctor             # 直接问运行中的窗口：增强层到底进没进去
+ckit locales            # 可选：看有哪些语言、换语言
 ```
 
 `ckit install` 会在开始菜单 / 桌面找到 Cline 快捷方式，把原始目标备份进 `%APPDATA%\cline-kit\config.json`，
@@ -97,11 +98,26 @@ ckit doctor             # 直接问运行中的窗口：增强层到底进没进
 | `ckit attach` | 往你自己启动、已开调试端口的 Cline 注入一次（`--port=N`），不接管快捷方式 |
 | `ckit features` | 列出功能插件与开关状态 |
 | `ckit feature enable\|disable <id>` | 开关某个插件（约 4 秒生效，无需重启） |
+| `ckit locales` | 列出随包发行的界面语言、字符串数与当前语言 |
+| `ckit locales <语言>` | 切换语言，如 `ckit locales ja`（约 4 秒生效，无需重启） |
 | `ckit install` / `uninstall` | 改写 / 还原 Cline 快捷方式 |
 | `ckit update` | 从 GitHub 拉取最新语言词典（`--force` 立即检查） |
 | `ckit audit` | 走查界面，列出仍是英文的字符串 |
 | `ckit dict` | 词典统计与本地覆盖文件路径 |
 | `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off`、`--dictionary=<语言>`、`--hide=<路径>` |
+
+### 选择语言
+
+Cline 自己没有语言设置，所以选择权在工具这一侧：
+
+```bash
+ckit locales          # 看有哪些语言、各覆盖多少条、当前用的是哪一个（* 号标记）
+ckit locales ja       # 切换；正在打开的窗口约 4 秒内跟着变，不用重启
+ckit locales zh-CN    # 换回基准词典
+```
+
+`ckit install` 每次都会打印当前语言和这条命令，第一次 `ckit start` 成功后也会提示一次。
+`ckit config --dictionary=<语言>` 是等价的写法。选定非默认语言后，`ckit update` 热更新的就是那一份。
 
 ## 功能
 
@@ -116,8 +132,8 @@ ckit doctor             # 直接问运行中的窗口：增强层到底进没进
   工具标识和代码。语料为 476 条词条 + 30 条规则，来源是「界面走查 + 从应用自身源码提取」两路合并。
   现在随包附带 5 份词典：**zh-CN**（基准，逐条对着运行中的界面校对过）、**zh-TW**、**ja**、**ko**、
   **vi** —— 后四份条目齐全但属于机器辅助翻译、未经母语者审校，术语有偏差欢迎提 PR 直接改。
-  切换：`ckit config --dictionary=ja`，正在打开的窗口**不需要重启或刷新**就会跟着变；
-  `ckit update` 也只更新你选的那一份。制作流程见
+  切换：`ckit locales`（列出并切换）或 `ckit locales ja`，正在打开的窗口**不需要重启或刷新**就会跟着变；
+  `ckit update` 也只更新你选的那一份。详见[选择语言](#选择语言)。制作流程见
   [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md)。
 
 ## 已知限制
@@ -129,6 +145,8 @@ ckit doctor             # 直接问运行中的窗口：增强层到底进没进
   得到的是原版界面。
 * **Cline 升级可能失效。** 文案改了，语言包会留英文；侧边栏结构改了，`sidebar-groups` 需要跟进。
   跑一次 `ckit audit` 并开 issue。
+* **语言开关在工具这一侧，不在 Cline 里。** Cline 没有语言设置，所以界面里找不到那个齿轮：
+  `ckit locales` 就是选择器（`ckit install` 和第一次 `ckit start` 都会提示它）。
 * **模型下方的一句英文简介不覆盖**——来自云端目录的自由文本，条数随服务商变化。
 * **同名项目。** Cline 自己的分组标题只有文件夹名、没有路径，所以登记表里出现两个不同盘符下的 `LLM`
   且其中一个已有原生分组时，无法判断哪一个才是它。此时两行都列出（带上级目录区分），并且不在这种行里

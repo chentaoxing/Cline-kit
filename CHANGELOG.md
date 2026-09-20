@@ -4,6 +4,24 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.1.2] - 2026-09-21
+
+### Added
+
+- `ckit locales` — lists the interface languages that ship with the kit (code, native name, string
+  count, dictionary version, `*` on the active one) and `ckit locales <code>` switches to one. Language
+  choice used to be reachable only through `ckit config --dictionary=<code>`, which no one finds without
+  reading the middle of the README; the old flag still works and writes the same field.
+- `ckit install` prints the current language and the switch command every time, and the first successful
+  `ckit start` says it once (`hintLanguageShown` in `%APPDATA%\cline-kit\config.json`).
+- `scripts/cli-locale-switch-check.js` — drives the CLI as a subprocess and probes the live DOM, so the
+  check covers the command a user types rather than the internal config write.
+
+### Changed
+
+- `npm test` is 25 checks: the new one asserts every bundled locale appears in `ckit locales`, that
+  `--help` documents each command, and that an unknown code fails instead of storing a broken language.
+
 ## [0.1.1] - 2026-09-20
 
 ### Changed

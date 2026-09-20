@@ -307,6 +307,41 @@ test("the updater maps the reference URL onto the selected locale", () => {
   assert.ok(/CHANGE_ME/.test(dict.remoteUrlFor(placeholder)), "unconfigured URL stays marked");
 });
 
+test("ckit locales lists every bundled dictionary, and --help points at it", () => {
+  const { spawnSync } = require("child_process");
+  const node = process.execPath;
+  const cli = path.join(__dirname, "..", "src", "cli.js");
+  const codes = dict.available();
+  assert.ok(codes.length >= 5, "expected the five bundled locales, got " + codes.join(","));
+
+  const list = spawnSync(node, [cli, "locales"], { encoding: "utf8" });
+  assert.strictEqual(list.status, 0, "ckit locales exited " + list.status + ": " + list.stderr);
+  for (const code of codes) {
+    assert.match(list.stdout, new RegExp("(^|\\s)" + code.replace("-", "\\-") + "\\s"), code + " missing from `ckit locales`");
+    // every row carries its native name, string count and version so the choice is informed
+    assert.match(list.stdout, new RegExp(code.replace("-", "\\-") + "\\s+\\S+.*\\d+ strings\\s+v\\d+"), code + " row incomplete");
+  }
+  assert.match(list.stdout, /\*/, "the active language should be marked");
+  assert.match(list.stdout, /ckit locales </, "should tell the user how to switch");
+
+  const help = spawnSync(node, [cli, "help"], { encoding: "utf8" });
+  assert.strictEqual(help.status, 0);
+  assert.match(help.stdout, /^\s+locales\s+List the UI languages/m, "--help must document ckit locales");
+  for (const c of ["start", "stop", "status", "doctor", "attach", "install", "uninstall", "features", "update", "audit", "dict", "config"])
+    assert.match(help.stdout, new RegExp("^\\s+" + c + "\\s+\\S", "m"), "help is missing the " + c + " row");
+
+  // an unknown code must fail loudly instead of writing a broken config
+  const bad = spawnSync(node, [cli, "locales", "de"], { encoding: "utf8" });
+  assert.notStrictEqual(bad.status, 0, "unknown locale should exit non-zero");
+  assert.match(bad.stderr || bad.stdout, /Unknown locale/);
+
+  // the language has to be discoverable: install says it every time, start once
+  const cliSrc = fs.readFileSync(cli, "utf8");
+  assert.strictEqual((cliSrc.match(/languageTip\(/g) || []).length, 3, "one definition + install + start call");
+  const cfg = require("../src/config");
+  assert.strictEqual(cfg.DEFAULTS.hintLanguageShown, false, "the start hint is shown once and defaults to unseen");
+});
+
 console.log("");
 if (failures.length) {
   console.log(failures.length + " of " + (passed + failures.length) + " checks FAILED");
