@@ -4,7 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.2.1] - 2026-09-21
+
+### Changed
+
+- **zh-TW dictionary v3**: the send action was rendered two different ways in the same locale
+  (發送 in four strings, 送出 in four others). It is now 傳送, which is both what a zh-TW reader sees
+  in Microsoft and Google products for that button and, more importantly, self-consistent.
+- Locale terminology was cross-checked against professional human localizations - the MIT-licensed
+  `microsoft/vscode-loc` packs (zh-hant/ja/ko) and the MPL-2.0 Firefox localizations (vi, since no
+  VS Code Vietnamese pack exists). `scripts/terminology-crosscheck.js` reports divergences and
+  changes nothing; [`docs/terminology.md`](docs/terminology.md) records the sources, the coverage
+  limits, and every divergence that was reviewed and deliberately kept (會話 for a chat session
+  rather than Microsoft's 工作階段, 작업 공간 over 작업 영역, 스킬 for a product noun). One item is
+  marked genuinely arguable rather than settled: 智慧代理 for "agent".
+- NOTICE no longer claims nothing was taken from third-party translation projects, which stopped
+  being true the moment a term was adopted from one.
+
+
 ## [0.2.0] - 2026-09-21
+
 
 ### Added
 
