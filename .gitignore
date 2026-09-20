@@ -11,3 +11,4 @@ audit-report.json
 # release build output
 .release-build/
 *.zip
+.release-notes.md
