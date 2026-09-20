@@ -8,7 +8,7 @@ const DEFS = [
   {
     id: "sidebar-groups",
     file: "sidebar-groups.js",
-    title: "侧边栏全项目常驻 / always-show registered workspaces",
+    title: "Keep every registered project in the sidebar / 侧边栏全项目常驻",
     defaultOn: true,
     // config handed to the browser script; keep it JSON-serialisable
     build(ctx) {
