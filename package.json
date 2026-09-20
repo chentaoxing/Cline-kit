@@ -1,0 +1,48 @@
+{
+  "name": "cline-zh-overlay",
+  "version": "0.1.0",
+  "description": "Simplified Chinese UI overlay for the Cline desktop app (Windows). No binary patching - injects a translation layer over the WebView2 debug port.",
+  "keywords": [
+    "cline",
+    "i18n",
+    "l10n",
+    "chinese",
+    "zh-cn",
+    "localization",
+    "webview2",
+    "desktop-app"
+  ],
+  "license": "MIT",
+  "bin": {
+    "cline-zh": "src/cli.js"
+  },
+  "main": "src/cli.js",
+  "files": [
+    "src/",
+    "dictionaries/",
+    "README.md",
+    "README.zh-CN.md",
+    "SECURITY.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "scripts": {
+    "start": "node src/cli.js start",
+    "status": "node src/cli.js status",
+    "install-ui": "node src/cli.js install",
+    "uninstall-ui": "node src/cli.js uninstall",
+    "audit": "node src/cli.js audit",
+    "dict:update": "node src/cli.js update --force"
+  },
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CHANGE_ME/cline-zh-overlay.git"
+  },
+  "bugs": {
+    "url": "https://github.com/CHANGE_ME/cline-zh-overlay/issues"
+  }
+}
