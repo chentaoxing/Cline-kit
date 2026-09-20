@@ -13,6 +13,8 @@
     "desktop-app"
   ],
   "license": "MIT",
+  "author": "chentaoxing",
+  "notices": "See NOTICE: unofficial project; English keys are Cline desktop UI strings (upstream cline/cline is Apache-2.0); Chinese values are original translations.",
   "bin": {
     "cline-zh": "src/cli.js"
   },
@@ -23,6 +25,7 @@
     "README.md",
     "README.zh-CN.md",
     "SECURITY.md",
+    "NOTICE",
     "CHANGELOG.md",
     "LICENSE"
   ],

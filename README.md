@@ -147,3 +147,8 @@ limitations above and is strictly a stopgap until an official locale exists.
 ## License
 
 MIT — see [LICENSE](LICENSE). This project is not affiliated with, endorsed by, or part of Cline.
+
+[NOTICE](NOTICE) records the provenance: the English dictionary keys are Cline desktop UI strings
+(read from the running app and from `apps/examples/desktop-app` in the Apache-2.0 `cline/cline`
+repository), the Chinese values are original translations, no upstream code or assets are shipped, and
+the two community projects whose *design ideas* influenced this one are credited there.

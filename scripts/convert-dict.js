@@ -1,10 +1,17 @@
 "use strict";
-// One-off dev helper: convert the working zh.js into a declarative dictionaries/zh-CN.json.
-// No eval: the object/array literals in zh.js are JSON-compatible once comment lines are dropped.
+// One-off dev helper: convert the original DOM-scraped zh.js into a declarative
+// dictionaries/zh-CN.json. No eval: the literals in zh.js are JSON-compatible once
+// comment lines are dropped.
 const fs = require("fs");
 const path = require("path");
 
-const SRC = process.argv[2] || "C:\\Users\\AlphaC\\AppData\\Local\\cline-i18n-zh\\zh.js";
+const SRC = process.argv[2];
+if (!SRC) {
+  console.error("usage: node scripts/convert-dict.js <path-to-zh.js>");
+  console.error("This is a one-off migration helper for the original prototype file; it is not");
+  console.error("needed for normal dictionary maintenance (edit dictionaries/zh-CN.json instead).");
+  process.exit(1);
+}
 const OUT = path.join(__dirname, "..", "dictionaries", "zh-CN.json");
 const src = fs.readFileSync(SRC, "utf8");
 

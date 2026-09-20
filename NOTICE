@@ -1,0 +1,48 @@
+# NOTICE
+
+cline-zh-overlay
+Copyright (c) 2026 chentaoxing
+
+## Unofficial
+
+This project is **not** affiliated with, endorsed by, or supported by Cline or its contributors.
+"Cline" is a name/brand of its respective owners; it is used here descriptively to identify which
+application this tool patches at runtime.
+
+## What is under MIT
+
+All source code in `src/` and `scripts/`, all documentation, and the `zh-CN` translation content in
+`dictionaries/` are original work of this project's authors and are licensed under the MIT License
+(see `LICENSE`).
+
+## Where the English strings come from
+
+The dictionary keys are **English UI strings of the Cline desktop app**. They were obtained two ways:
+
+1. by walking the rendered UI of the shipping app (v0.0.32) with the overlay's own `audit` command;
+2. by reading the app's own source at `apps/examples/desktop-app` in the public repository
+   [`cline/cline`](https://github.com/cline/cline), which is distributed under the **Apache License
+   2.0**. The English text is quoted as-is because it is the lookup key; the Chinese values are
+   original translations written by this project and are not derived from any upstream translation.
+
+No source code, bundle, or binary from `cline/cline` is copied, distributed, or shipped in this
+repository. The tool never modifies `cline-app.exe`.
+
+## Design credit (ideas, not code)
+
+Two community projects in the same space shaped decisions here. **No code from either is included or
+translated**; both are cited so readers can compare approaches:
+
+* [`ExSchwi/cline-desktop-zh-cn`](https://github.com/ExSchwi/cline-desktop-zh-cn) (Apache-2.0) — the
+  idea of keying localisation data against the app version with a documented fallback strategy. This
+  project instead keys the injected payload on a content hash and treats `audit` as the regression
+  detector; see `docs/dictionary-pipeline.zh-CN.md` for the trade-off.
+* [`JACK5920/cline-desktop-zh`](https://github.com/JACK5920/cline-desktop-zh) (MIT) — confirmation
+  that a silent launcher plus a dictionary plus a DOM overlay is a workable shape, and the idea of
+  separating whole-element replacement from text-node replacement.
+
+## Icons
+
+No Cline logo or icon asset is bundled. The Start Menu shortcut created by `cline-zh install`
+references the icon **inside the user's own locally installed `cline-app.exe`** by path, so no image
+file is copied into this repository or into a release archive.

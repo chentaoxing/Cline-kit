@@ -121,3 +121,7 @@ npm uninstall -g cline-zh-overlay
 ## 许可
 
 MIT，见 [LICENSE](LICENSE)。本项目与 Cline 无隶属关系，也未获其背书。
+
+[NOTICE](NOTICE) 记录了来源边界：词典的英文键是 Cline 桌面版自身的界面文案（从运行中的程序读取，
+并对照 Apache-2.0 许可的 `cline/cline` 仓库中 `apps/examples/desktop-app` 提取），中文值是本项目原创
+翻译；仓库不打包任何上游代码或图标资源；同方向两个社区项目对**设计思路**的影响也在其中致谢。
