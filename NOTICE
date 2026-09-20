@@ -54,7 +54,15 @@ app and out of `apps/examples/desktop-app` in the Apache-2.0 `cline/cline` repos
 are original work of this project.
 
 `zh-TW.json`, `ja.json`, `ko.json` and `vi.json` hold the same 476 keys, translated with machine
-assistance and then terminology-checked inside this project. zh-TW additionally went through a
-character-sense review rather than a simplified-to-traditional swap. None of the four has been reviewed
-by a native speaker of the target language, and each file says so in its own `note` field. They contain
-no code, no assets and no text taken from any third-party translation project.
+assistance. Their terminology was then cross-checked against professional human localizations of the
+same software vocabulary - the MIT-licensed `microsoft/vscode-loc` packs (zh-hant, ja, ko) and the
+MPL-2.0 Firefox localizations (vi) - using `scripts/terminology-crosscheck.js`. Where the reference
+term was simply the standard one we adopted it; where we kept a different rendering the reason is
+recorded in `docs/terminology.md`. zh-TW additionally went through a character-sense review rather
+than a simplified-to-traditional swap.
+
+None of the four has been reviewed by a native speaker of the target language, and each file says so
+in its own `note` field. The cross-check compares terminology; it cannot judge fluency or register.
+No translation memory, string table or file from a third-party localization project is redistributed
+in this repository - the reference packs are downloaded at check time into a local cache and are
+never committed.

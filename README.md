@@ -156,7 +156,9 @@ The row is added by this kit — Cline has no language setting of its own. Turn 
   dictionaries ship: **zh-CN** (reference, proofread against the running app), **zh-TW**, **ja**,
   **ko**, **vi** - complete but machine-assisted and *not* reviewed by native speakers, so a pull
   request fixing a term is genuinely welcome. Choose one in Cline's Settings, or with
-  `ckit locales` — see [Choosing a language](#choosing-a-language). Authoring guide:
+  `ckit locales` — see [Choosing a language](#choosing-a-language). Terminology was cross-checked against
+  professional human localizations and the deliberate differences are listed in
+  [`docs/terminology.md`](docs/terminology.md); authoring guide:
   [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md).
 
 ## Limitations

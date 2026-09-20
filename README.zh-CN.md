@@ -141,7 +141,8 @@ ckit locales none     # 不再替换 Cline 自己的文案
   现在随包附带 5 份词典：**zh-CN**（基准，逐条对着运行中的界面校对过）、**zh-TW**、**ja**、**ko**、
   **vi** —— 后四份条目齐全但属于机器辅助翻译、未经母语者审校，术语有偏差欢迎提 PR 直接改。
   切换：Cline 设置页的「界面语言」，或 `ckit locales ja`，正在打开的窗口**不需要重启或刷新**就会跟着变；
-  `ckit update` 也只更新你选的那一份。详见[选择语言](#选择语言)。制作流程见
+  `ckit update` 也只更新你选的那一份。详见[选择语言](#选择语言)。术语已对照官方人工本地化校验，
+  有意保留的差异见 [`docs/terminology.md`](docs/terminology.md)；制作流程见
   [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md)。
 
 ## 已知限制
