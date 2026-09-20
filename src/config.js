@@ -26,6 +26,9 @@ const DEFAULTS = {
   updateUrl: "https://raw.githubusercontent.com/CHANGE_ME/cline-zh-overlay/main/dictionaries/zh-CN.json",
   updateIntervalMs: 24 * 60 * 60 * 1000,
   dictionary: "zh-CN",
+  // feature id -> boolean; absent keys fall back to each feature's defaultOn
+  features: {},
+  featureHide: [],
   // installer state
   shortcutPath: null,
   autostart: false,

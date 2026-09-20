@@ -61,6 +61,17 @@ the normal way gives you Chinese.
 | `cline-zh dict` | Dictionary statistics and the path of your local override file |
 | `cline-zh config` | Inspect or set `--cline-path`, `--port`, `--auto-update=on\|off` |
 
+## Features
+
+Translation is only one layer. `cline-zh features` lists the optional overlays that share the same
+injection channel, and `cline-zh feature enable|disable <id>` toggles them live (~4 s, no restart).
+
+* **`sidebar-groups`** (on by default) — Cline's native project grouping hides any registered workspace
+  that has no sessions yet. This appends the missing ones with matching styling, and switches project by
+  driving Cline's own workspace picker rather than touching its storage. See
+  [`docs/features.zh-CN.md`](docs/features.zh-CN.md) for the design notes (container vs project detection,
+  install-directory injection, why group mode is re-applied exactly once per load).
+
 ## Customising wording
 
 Add or edit entries in `dictionaries/zh-CN.json`:

@@ -22,6 +22,8 @@ const HELP = `cline-zh - Cline 桌面版中文界面覆盖层 (Windows)
   uninstall        还原快捷方式
   update           从 GitHub 拉取最新词典（离线时自动跳过）
   audit            走查界面，列出仍未翻译的字符串（用于补词典/报 issue）
+  features         列出功能插件（feature）及其开关状态
+  feature          开关某个插件：cline-zh feature enable|disable <id>
   dict             显示当前词典统计
   config           查看或修改配置：--cline-path=... --port=... --auto-update=on|off
 
@@ -117,6 +119,36 @@ async function main() {
     console.log(`未翻译字符串 ${r.total} 条，明细：${r.file}`);
     r.items.slice(0, Number(flags.limit) || 80).forEach(([s, where]) => console.log("  " + s + "   [" + where + "]"));
     if (r.total > (Number(flags.limit) || 80)) console.log("  ...");
+    return;
+  }
+
+  if (cmd === "features" || cmd === "feature") {
+    const features = require("./features");
+    const conf2 = cfg.read();
+    const sub = flags._ || null;
+    if (cmd === "features") {
+      const enabled = features.enabledSet(conf2);
+      for (const f of features.list()) {
+        console.log(`${enabled[f.id] ? "on " : "off"}  ${f.id}  (v${f.version})  ${f.title}`);
+      }
+      console.log("\n切换：cline-zh feature enable <id> | cline-zh feature disable <id>");
+      return;
+    }
+    const [action, id] = argv.slice(1).filter((a) => !a.startsWith("--"));
+    const known = features.list().map((f) => f.id);
+    if (!known.includes(id)) {
+      console.error(`未知 feature: ${id || "(空)"}；可用：${known.join(", ")}`);
+      process.exitCode = 1;
+      return;
+    }
+    if (action !== "enable" && action !== "disable") {
+      console.error("用法：cline-zh feature <enable|disable> <id>");
+      process.exitCode = 1;
+      return;
+    }
+    conf2.features = Object.assign({}, conf2.features || {}, { [id]: action === "enable" });
+    cfg.write(conf2);
+    console.log(`${id} -> ${action === "enable" ? "已启用" : "已禁用"}（注入器约 4 秒内生效）`);
     return;
   }
 

@@ -1,6 +1,8 @@
 "use strict";
 // Resident keep-alive: keeps the overlay installed in every Cline webview page.
 // Re-reads the dictionary each cycle, so `cline-zh update` takes effect without a restart.
+const fs = require("fs");
+const path = require("path");
 const { execFileSync } = require("child_process");
 const cfg = require("./config");
 const cdp = require("./cdp");
@@ -8,6 +10,15 @@ const payload = require("./payload");
 
 const INTERVAL_MS = 4000;
 const registered = new Map(); // targetId -> { scriptId, dictVersion }
+
+// Surface injection failures instead of swallowing them; a silent no-op is the worst outcome.
+function log(msg) {
+  try {
+    cfg.ensureDirs();
+    fs.appendFileSync(path.join(cfg.logDir(), "injector.log"),
+      new Date().toISOString() + " " + msg + "\n");
+  } catch (e) { /* never fail the loop over logging */ }
+}
 
 function clineRunning() {
   if (process.platform !== "win32") return true;
@@ -31,15 +42,19 @@ async function installOnce(port, source, version) {
       const r = await api.rpc("Page.addScriptToEvaluateOnNewDocument", { source });
       registered.set(target.id, { scriptId: r.identifier, dictVersion: version });
     }
-    await api.rpc("Runtime.evaluate", { expression: source });
+    const r = await api.rpc("Runtime.evaluate", { expression: source });
+    if (r && r.exceptionDetails) {
+      const ex = r.exceptionDetails.exception || {};
+      log("evaluate error on " + target.id + ": " + (ex.description || ex.value || r.exceptionDetails.text));
+    }
     return true;
   });
   return results;
 }
 
 async function main() {
-  const conf = cfg.read();
-  const port = conf.port;
+  const boot = cfg.read();
+  const port = boot.port;
   if (!port) {
     console.error("[cline-zh] injector: no port in config; start via `cline-zh start`");
     process.exit(2);
@@ -47,9 +62,10 @@ async function main() {
   let gone = 0;
   for (;;) {
     try {
-      const source = payload.build(conf);
-      const version = payload.info(conf).version;
-      await installOnce(port, source, version);
+      // re-read every cycle so feature toggles, dictionary updates and path changes apply live
+      const conf = cfg.read();
+      const composed = payload.compose(conf);
+      await installOnce(conf.port || port, composed.source, composed.version);
       gone = 0;
     } catch (e) {
       if (!clineRunning() && ++gone > 3) {
