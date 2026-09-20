@@ -30,6 +30,23 @@ function evaluate(api, expression) {
     .then((r) => (r && r.result && r.result.value !== undefined ? r.result.value : null));
 }
 
+// Each feature publishes its own shape under `__ckitFeatureState[<id>_stats]`, so the doctor line has
+// to read the numbers instead of assuming the sidebar's. A feature that is only on screen some of the
+// time (the Settings row) must not look like a failure when it is simply not mounted.
+function summarize(stats) {
+  if (typeof stats.rows === "number") {
+    return stats.rows + " row(s) added of " + stats.registered + " registered, " + stats.nativeGroups + " native";
+  }
+  if (stats.row) {
+    const bits = [stats.row === "rendered" ? "row present" : "row not on screen (" + stats.row + ")"];
+    if (stats.current) bits.push("current " + stats.current);
+    if (stats.pending && stats.pending !== stats.current) bits.push("pending " + stats.pending);
+    if (stats.choices) bits.push(stats.choices + " choices");
+    return bits.join(", ");
+  }
+  return JSON.stringify(stats).slice(0, 120);
+}
+
 async function run() {
   const conf = cfg.read();
   const found = detect.detect(conf);
@@ -70,7 +87,7 @@ async function run() {
     if (!f.enabled) continue;
     const seen = live.map((p) => p.features[f.id]).filter(Boolean);
     add("feature " + f.id, seen.length > 0, seen.length
-      ? seen.map((s) => "build " + s.build + (s.stats ? ", " + s.stats.rows + " row(s) added of " + s.stats.registered + " registered, " + s.stats.nativeGroups + " native" : "")).join(" | ")
+      ? seen.map((s) => "build " + s.build + (s.stats ? ", " + summarize(s.stats) : "")).join(" | ")
       : "not present in any page - Cline's DOM may have changed");
   }
 

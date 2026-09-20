@@ -26,9 +26,11 @@ function compose(cfgObj) {
   const parts = ["const DICT = " + json(d) + ";", ENGINE];
 
   for (const f of picked) {
-    // per-feature build hash: the feature's own guard compares against it, so editing the script
-    // hot-swaps it without anyone remembering to bump a VER constant
-    const cfgObjForFeature = Object.assign({}, f.config, { __build: hash12(f.source) });
+    // Per-feature build hash over source *and* config: editing the script hot-swaps it, and so does a
+    // config change (a different `current` language, a new hide path) - keying on source alone left a
+    // feature running with stale config until a full reload.
+    const plain = Object.assign({}, f.config);
+    const cfgObjForFeature = Object.assign({}, plain, { __build: hash12(f.source + "\u0000" + json(plain)) });
     parts.push(
       "window.__clineKitFeature = window.__clineKitFeature || {};",
       "window.__clineKitFeature[" + json(f.id) + "] = " + json(cfgObjForFeature) + ";",

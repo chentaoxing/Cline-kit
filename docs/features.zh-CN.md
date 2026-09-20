@@ -45,12 +45,41 @@ Cline 原生的「项目分组」只列出**已经有会话**的文件夹，登�
   `...vN`（`registryKey()`）；Cline 哪天升到 v3 也不会静默变成 0 行。真要指定，
   `ckit config --storage-key=...` 覆盖；不想出现在侧边栏的目录用 `ckit config --hide=<路径>`。
 
+## language-picker — 在 Cline 里面选语言
+
+Cline 原生没有语言设置，所以这一行由插件加进它自己的设置页：锚在「深色模式」那一行后面，
+结构照抄它旁边的行（`div.flex … border-b py-4` + 左侧标题/说明 + 右侧按钮组），选中的按钮用
+原生同款 `ring-2 ring-ring`。定位靠 `[role=switch]` 反查容器，而且**给所有候选容器打分**——
+通知设置那种小面板也有 8 个开关，取第一个匹配会插错地方。
+
+点一下不在这个窗口里翻译（payload 是在 Node 侧拼装的），而是走一条最短的回路：
+
+1. 按钮把 `cline-kit.language-pending = <code>` 写进 localStorage；
+2. 常驻注入器下一轮（≤4 s）读到它，**读后即清**，把 `dictionary` 写进 `%APPDATA%\cline-kit\config.json`；
+3. payload 版本变化 → 重新注入 → 引擎按节点上记的原文重新翻译，整个窗口跟着变，不刷新、不重启。
+
+「读后即清」是这里的关键：pending 是一次性的请求，不是第二个状态来源。否则终端里
+`ckit locales ko` 改完，会被上一次点击留下的旧 intent 立刻改回去。
+
+`English` 一项对应 `dictionary: "none"`——插件继续跑，但词典是空的，不替换任何文案。
+
+两个必须记住的工程约束：
+
+- **`__build` 要把 config 一起算进去**。只按源码算哈希时，语言变了但插件源码没变，
+  `language-picker` 会守卫命中直接 return，界面上选中的还是上一个语言。
+- **`data-ckit-ui`**：引擎跳过标记节点内部的文本与属性（结果按节点记忆，避免每次遍历都 `closest()`），
+  否则「按钮文案被自己翻译 → observer 再次触发」这类自反馈会在窗口里复现。
+
 ## 自检
 
 `ckit doctor` 读的是**页面里**的状态而不是配置文件里的期望值：插件把计数写在
 `window.__clineKitFeatureState["sidebar-groups_stats"]`（登记项目数、原生分组数、打算补几行、
 实际补了几行），doctor 通过调试端口把它取回来打印。Cline 改版导致选择器失效时，
 这里会直接显示 `row(s) added = 0`，而不是让人对着空侧边栏猜。
+
+每个插件的 stats 形状不同，所以 doctor 按形状分别概括：侧边栏报行数，`language-picker` 报
+`row present / row not on screen (no-settings-page), current zh-CN, 6 choices`——设置页没打开时
+那一行本来就不该在，这不算 FAIL。
 
 路径、标签、容器判定这些纯逻辑放在 `src/features/sidebar-groups.logic.js`（UMD：浏览器里挂到
 `window.__ckitSidebarLogic`，测试里按 CommonJS 引入）。`src/features/index.js` 装载插件时把

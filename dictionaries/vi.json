@@ -1,9 +1,9 @@
 {
- "version": 1,
+ "version": 2,
  "language": "vi",
  "label": "Vietnamese",
  "clineVersion": "0.0.32",
- "updated": "2026-09-20",
+ "updated": "2026-09-21",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "Phiên",
@@ -617,6 +617,13 @@
    "errNoSearch": "Không tìm thấy ô tìm kiếm không gian làm việc",
    "errNotListed": "Dự án đó không có trong danh sách",
    "errSwitch": "Chuyển đổi thất bại"
+  },
+  "language-picker": {
+   "title": "Ngôn ngữ giao diện",
+   "hint": "Do cline-kit thêm vào. Áp dụng trong ~4 giây, không cần khởi động lại, lựa chọn được lưu.",
+   "switching": "Đang chuyển…",
+   "offTip": "Giữ nguyên văn bản gốc của Cline",
+   "stringsWord": "chuỗi"
   }
  }
 }

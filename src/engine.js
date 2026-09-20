@@ -54,6 +54,18 @@
 
   function norm(s) { return String(s || "").replace(/\s+/g, " ").trim(); }
 
+  // The kit's own controls (the in-app language row) are already rendered in the language the user
+  // picked, and translating them would let the observer chase its own output. The check is memoised
+  // on the node because this runs for every text node on every mutation.
+  function isKitUI(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.__ckitOwn == null) {
+      try { el.__ckitOwn = el.closest && el.closest("[data-ckit-ui]") ? 1 : 0; }
+      catch (e) { el.__ckitOwn = 0; }
+    }
+    return el.__ckitOwn === 1;
+  }
+
   // Text we replaced is remembered on the node, so switching locale (or pulling a newer dictionary)
   // can start from the original English instead of from last run's output.
   function translateText(node) {
@@ -61,6 +73,7 @@
     if (!raw || raw.length > 800) return;
     var el = node.parentElement;
     if (el && SKIP[el.tagName]) return;
+    if (isKitUI(el)) return;
     var src = raw;
     if (node.__ckitOut != null) {
       src = norm(raw) === norm(node.__ckitOut) ? node.__ckitSrc : raw;  // the app rewrote it: stale
@@ -85,6 +98,7 @@
 
   function translateEl(el) {
     if (!el || el.nodeType !== 1 || !el.getAttribute) return;
+    if (isKitUI(el)) return;
     var keep = el.__ckitAttrSrc || (el.__ckitAttrSrc = {});
     for (var i = 0; i < ATTRS.length; i++) {
       var a = ATTRS[i];

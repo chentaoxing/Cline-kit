@@ -13,9 +13,10 @@ Every project you registered but have not opened yet is simply invisible. `cline
 them listed, with the same styling as the native groups, and lets you switch into an empty project
 straight from the sidebar.
 
-**Secondary feature:** UI locale packs — five ship: 简体中文 (reference, proofread), plus 繁體中文 /
-日本語 / 한국어 / Tiếng Việt. Locales exist because the same injection channel can carry them — they
-are not what the project is for.
+**Secondary feature:** UI locale packs — 简体中文 (reference, proofread), 繁體中文, 日本語, 한국어,
+Tiếng Việt, plus an `English` opt-out. Pick one inside Cline itself: Settings gains an **Interface
+language** row. Locales exist because the same injection channel can carry them — they are not what
+the project is for.
 
 ## The sidebar problem
 
@@ -81,7 +82,7 @@ ckit.cmd start
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .            # or call it directly: node src/cli.js <command>
-npm test                    # 25 checks, no dependencies
+npm test                    # 28 checks, no dependencies
 ```
 
 Then in every case:
@@ -117,17 +118,24 @@ then gives you the enhanced sidebar. If you would rather keep your own launcher,
 
 ### Choosing a language
 
-Language is a per-install choice, and Cline has no language setting of its own, so the kit exposes it:
+**In the app:** open Cline's Settings (the gear at the bottom of the sidebar) and use the **Interface
+language** row. It sits under Dark mode, looks like its neighbours, and takes effect in about four
+seconds — no restart, and the choice is remembered. `English` there means "change nothing".
+
+**From the terminal**, which is the same setting:
 
 ```bash
 ckit locales          # what ships, how many strings each covers, which one is active
 ckit locales ja       # switch; the open window changes within ~4 s, no restart
-ckit locales zh-CN    # back to the reference dictionary
+ckit locales none     # stop replacing Cline's own text
 ```
 
 `ckit install` prints the current language and this command, and the first `ckit start` says it once.
-`ckit config --dictionary=<code>` is the same write if you prefer the generic config command. Once a
-non-default locale is selected, `ckit update` hot-updates *that* dictionary.
+`ckit config --dictionary=<code>` is the equivalent low-level write. Once a non-default locale is
+selected, `ckit update` hot-updates *that* dictionary.
+
+The row is added by this kit — Cline has no language setting of its own. Turn it off with
+`ckit feature disable language-picker`.
 
 ## Features
 
@@ -140,13 +148,15 @@ non-default locale is selected, `ckit update` hot-updates *that* dictionary.
   session; otherwise the kit keeps project grouping on. Two projects that share a folder name are
   labelled with their parent folder - `LLM (workspace)` - and every row carries the full path as its
   tooltip. Design notes: [`docs/features.zh-CN.md`](docs/features.zh-CN.md).
+* **`language-picker`** (on by default) — the Interface language row inside Cline's own Settings page.
+  See [Choosing a language](#choosing-a-language).
 * **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model
   names, provider names, tool identifiers and code cannot be mangled. The corpus is 476 strings plus
   30 pattern rules, built by combining a UI walk with extraction from the app's own source. Five
   dictionaries ship: **zh-CN** (reference, proofread against the running app), **zh-TW**, **ja**,
   **ko**, **vi** - complete but machine-assisted and *not* reviewed by native speakers, so a pull
-  request fixing a term is genuinely welcome. Pick one with `ckit locales` — see
-  [Choosing a language](#choosing-a-language). Authoring guide:
+  request fixing a term is genuinely welcome. Choose one in Cline's Settings, or with
+  `ckit locales` — see [Choosing a language](#choosing-a-language). Authoring guide:
   [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md).
 
 ## Limitations
@@ -160,9 +170,10 @@ non-default locale is selected, `ckit update` hot-updates *that* dictionary.
   repointed) has no debug port to attach to, so you get plain Cline.
 * **Cline updates can break things.** If the app renames a label, the locale leaves it in English; if
   it restructures the sidebar, `sidebar-groups` needs updating. Run `ckit audit` and open an issue.
-* **The language switch is in the kit, not in Cline.** Cline has no language setting, so there is no
-  gear icon to find it under: `ckit locales` is the picker (and `ckit install` / the first `ckit start`
-  point at it).
+* **The language row is ours, not Cline's.** It is inserted into the Settings page next to Dark mode,
+  which is the right place to look but not a location Cline documents. If that page is restructured,
+  `language-picker` needs its anchor updated (`ckit doctor` reports whether the row is present);
+  `ckit feature disable language-picker` removes it.
 * **Per-model description blurbs stay English** — free-form text from a remote provider catalogue.
 * **Same-named projects.** Cline's own group headers expose only the folder name, never the path, so if
   the registry holds two different `LLM` folders and one already has a native group, the kit cannot tell

@@ -3,6 +3,7 @@
 // Versions are read from the scripts themselves so the registry cannot drift.
 const fs = require("fs");
 const path = require("path");
+const dict = require("../dict");
 
 const DEFS = [
   {
@@ -20,6 +21,25 @@ const DEFS = [
         groupMode: true,
         // leave empty to follow Cline's own cline.code.workspace-selection.vN key
         storageKey: ctx.cfg.storageKey || "",
+        text: (ctx.featureText || {})[this.id] || {}
+      };
+    }
+  },
+  {
+    id: "language-picker",
+    file: "language-picker.js",
+    title: "Interface language row inside Cline's own Settings / 在 Cline 设置页里选语言",
+    defaultOn: true,
+    build(ctx) {
+      const current = ctx.cfg.dictionary || "zh-CN";
+      // The row belongs under Dark mode. Anchor on the English key and on this locale's rendering of
+      // it, because the engine may already have replaced the label when we look.
+      const dark = (ctx.entries || {})["Dark mode"];
+      return {
+        current,
+        pendingKey: "cline-kit.language-pending",
+        choices: dict.choices(),
+        anchors: dark && dark !== "Dark mode" ? ["Dark mode", dark] : ["Dark mode"],
         text: (ctx.featureText || {})[this.id] || {}
       };
     }
@@ -63,7 +83,8 @@ function resolve(cfgObj, dictObj) {
   const ctx = {
     cfg: cfgObj,
     installDir: cfgObj.clinePath ? path.dirname(cfgObj.clinePath) : "",
-    featureText: (dictObj && dictObj.featureText) || {}
+    featureText: (dictObj && dictObj.featureText) || {},
+    entries: (dictObj && dictObj.entries) || {}
   };
   const picked = [];
   for (const d of DEFS) {

@@ -1,9 +1,9 @@
 {
- "version": 1,
+ "version": 2,
  "language": "ja",
  "label": "Japanese",
  "clineVersion": "0.0.32",
- "updated": "2026-09-20",
+ "updated": "2026-09-21",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "セッション",
@@ -617,6 +617,13 @@
    "errNoSearch": "ワークスペース検索ボックスが見つかりません",
    "errNotListed": "このプロジェクトは一覧にありません",
    "errSwitch": "切り替えに失敗しました"
+  },
+  "language-picker": {
+   "title": "表示言語",
+   "hint": "cline-kit が追加。約4秒で反映され、再起動は不要です。選択は保存されます。",
+   "switching": "切り替え中…",
+   "offTip": "Cline 本来の表示に戻す",
+   "stringsWord": "件"
   }
  }
 }

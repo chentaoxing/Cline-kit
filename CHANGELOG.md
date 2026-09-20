@@ -4,6 +4,37 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.2.0] - 2026-09-21
+
+### Added
+
+- **`language-picker` feature - the interface language is now chosen inside Cline.** Settings gains an
+  "Interface language" row under Dark mode, built from the same markup as the rows around it, listing
+  each language in its own script (English / 日本語 / 한국어 / Tiếng Việt / 简体中文 / 繁體中文).
+  Clicking writes one pending intent into `localStorage`; the resident injector consumes it on its next
+  cycle, stores it as the configured dictionary, and re-injects, so the open window follows in ~4 s with
+  no reload and the choice survives a restart. `ckit feature disable language-picker` removes the row.
+- `none` / `English` as a first-class language: run the overlay for the sidebar only and leave every
+  string Cline shipped. Available in the app row, `ckit locales none` and `--dictionary=none`; with it
+  selected `ckit update` reports "translation is off" instead of fetching.
+
+### Changed
+
+- The terminal is now the secondary route, not the only one: `ckit locales`, `--help` and both READMEs
+  point at Settings first, and `ckit install` / the first `ckit start` say "pick it inside Cline".
+- Language names are listed in the language they name. `label` inside a dictionary is that language's
+  own wording (English for the machine-assisted packs), so a list built from it read as
+  "简体中文 / Japanese / Korean" - a translation of whatever is on screen instead of a choice.
+- Per-feature build hashes now cover the feature's **config** as well as its source. Keyed on source
+  alone, a locale switch left `language-picker` running with the previous `current` until a full reload.
+- `ckit doctor` summarises each feature with its own numbers instead of assuming the sidebar's, and a
+  feature that is only mounted some of the time (a Settings row) no longer reads as a failure.
+- The overlay leaves its own UI alone: nodes marked `data-ckit-ui` are skipped by the translator
+  (memoised per node), which is what keeps the language row from being re-translated by itself.
+- `npm test` is 28 checks: feature text is compared against **every** dictionary and every feature,
+  the picker's choice list and native names are pinned, `none` is verified as a real setting, and a
+  config-only change is required to bump the payload version.
+
 ## [0.1.2] - 2026-09-21
 
 ### Added

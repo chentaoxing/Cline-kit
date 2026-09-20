@@ -4,7 +4,6 @@
 // Flagship feature: keep every registered project visible in the sidebar.
 // Optional: UI locale packs (zh-CN reference; zh-TW / ja / ko / vi ship the same key set).
 const cfg = require("./config");
-const fs = require("fs");
 
 function guard() {
   if (typeof WebSocket !== "function") {
@@ -42,9 +41,12 @@ Main feature
 Optional feature
   locale packs     dictionaries/<locale>.json - whole-string replacement only, so provider names,
                    model names and code cannot be mangled. Bundled: zh-CN (reference, 476 entries),
-                   zh-TW, ja, ko, vi. Pick one with 'ckit locales' (lists + switches); the older
-                   'ckit config --dictionary=ja' does the same. 'ckit update' then follows that
-                   locale. Only zh-CN is proofread against the running app.
+                   zh-TW, ja, ko, vi, plus 'none' to leave Cline's own text alone.
+                   Pick it INSIDE Cline: Settings -> Interface language (that row is added by this
+                   kit, and clicking it applies within ~4 s without a restart). Or from here:
+                   'ckit locales' lists the choices, 'ckit locales ja' switches, and 'ckit update'
+                   then follows whichever locale is selected.
+                   Only zh-CN is proofread against the running app.
 
 Examples:
   ckit start
@@ -52,6 +54,7 @@ Examples:
   ckit features
   ckit locales
   ckit locales ja
+  ckit locales none
   ckit feature disable sidebar-groups
   ckit config --cline-path "D:\\Programs\\Cline\\cline-app.exe"
 `;
@@ -67,6 +70,16 @@ function parseFlags(argv) {
   return { flags, rest };
 }
 
+// CJK and accented names are not one cell per code unit, and `padEnd` does not know that.
+function cellWidth(s) {
+  let n = 0;
+  for (const ch of String(s)) n += /[㐀-䶿一-鿿぀-가-힯豈-﫿]/.test(ch) ? 2 : 1;
+  return n;
+}
+function padCell(s, width) {
+  return String(s) + " ".repeat(Math.max(1, width - cellWidth(s)));
+}
+
 // Language choice is a per-install decision, so say where to change it once per
 // setup path instead of hiding it in the README. Returns nothing; prints itself.
 function languageTip(conf, showOnce) {
@@ -77,10 +90,11 @@ function languageTip(conf, showOnce) {
   }
   const dict = require("./dict");
   let codes = [];
-  try { codes = dict.available(); } catch (e) { codes = []; }
+  try { codes = dict.choices().map((c) => c.code); } catch (e) { codes = []; }
   const current = conf.dictionary || "zh-CN";
-  console.log(`Interface language: ${current}  (bundled: ${codes.join(", ") || current})`);
-  console.log("  list / switch with: ckit locales        e.g. ckit locales ja");
+  console.log(`Interface language: ${current}  (choices: ${codes.join(", ") || current})`);
+  console.log("  pick it inside Cline: Settings -> Interface language");
+  console.log("  or here: ckit locales  /  ckit locales ja");
 }
 
 async function main() {
@@ -218,11 +232,11 @@ async function main() {
   if (cmd === "locales" || cmd === "locale") {
     const dict = require("./dict");
     const conf2 = cfg.read();
-    const have = dict.available();
+    const choices = dict.choices();
     const target = argv.slice(1).filter((a) => !a.startsWith("--"))[0];
     if (target) {
-      if (!have.includes(target)) {
-        console.error(`Unknown locale "${target}". Bundled: ${have.join(", ")}`);
+      if (!dict.isKnown(target)) {
+        console.error(`Unknown locale "${target}". Bundled: ${choices.map((c) => c.code).join(", ")}`);
         process.exitCode = 1;
         return;
       }
@@ -231,17 +245,19 @@ async function main() {
       console.log(`Language -> ${target} (the injector applies it within ~4 s, no restart needed)`);
       console.log("Cline must be running through cline-kit for the open window to change; otherwise it");
       console.log("applies the next time you start it with `ckit start`.");
+      console.log("The same choice is available inside Cline: Settings -> Interface language.");
       return;
     }
     console.log("Bundled UI languages (switch with: ckit locales <code>):\n");
-    for (const code of have) {
-      const d = JSON.parse(fs.readFileSync(dict.bundledPath(code), "utf8"));
-      const n = Object.keys(d.entries || {}).length;
-      const active = (conf2.dictionary || "zh-CN") === code;
-      console.log(`  ${active ? "*  " : "   "}${code.padEnd(7)} ${(d.label || "").padEnd(12)} ${String(n).padStart(4)} strings  v${d.version}`);
+    for (const c of choices) {
+      const active = (conf2.dictionary || "zh-CN") === c.code;
+      const tail = c.off ? "  (original text, nothing replaced)"
+        : `  v${c.version}`;
+      console.log(`  ${active ? "*  " : "   "}${c.code.padEnd(7)} ${padCell(c.native, 12)} ${String(c.strings).padStart(4)} strings${tail}`);
     }
     console.log("\nOnly zh-CN is proofread against the running app; the others are complete but not");
     console.log("reviewed by native speakers - see dictionaries/ if you want to fix a term.");
+    console.log("You can also pick this inside Cline: Settings -> Interface language.");
     return;
   }
 
@@ -260,9 +276,9 @@ async function main() {
     if (flags["storage-key"] !== undefined) { conf.storageKey = String(flags["storage-key"]); changed = true; }
     if (flags.dictionary) {
       const want = flags.dictionary;
-      const have = require("./dict").available();
-      if (!have.includes(want)) {
-        console.error(`Unknown locale "${want}". Bundled dictionaries: ${have.join(", ")}`);
+      const dict = require("./dict");
+      if (!dict.isKnown(want)) {
+        console.error(`Unknown locale "${want}". Choices: ${dict.choices().map((c) => c.code).join(", ")}`);
         process.exitCode = 1;
         return;
       }

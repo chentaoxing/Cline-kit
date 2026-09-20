@@ -1,9 +1,9 @@
 {
- "version": 1,
+ "version": 2,
  "language": "zh-TW",
  "label": "繁體中文",
  "clineVersion": "0.0.32",
- "updated": "2026-09-20",
+ "updated": "2026-09-21",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English. Same 476 strings as zh-CN, localised for Taiwan software usage (外掛程式 / 市集 / 智慧代理 / 重新整理 / 匯入) with character-sense review rather than a mechanical simplified-to-traditional swap.",
  "entries": {
   "Session": "會話",
@@ -618,6 +618,13 @@
    "errNoSearch": "找不到工作區搜尋框",
    "errNotListed": "清單中沒有這個專案",
    "errSwitch": "切換失敗"
+  },
+  "language-picker": {
+   "title": "介面語言",
+   "hint": "由 cline-kit 新增；約 4 秒生效，不需重新啟動，設定會儲存。",
+   "switching": "切換中…",
+   "offTip": "還原 Cline 原始文字",
+   "stringsWord": "條"
   }
  }
 }

@@ -6,10 +6,30 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const cfg = require("./config");
 const cdp = require("./cdp");
+const dict = require("./dict");
 const payload = require("./payload");
 
 const INTERVAL_MS = 4000;
 const registered = new Map(); // targetId -> { scriptId, dictVersion }
+
+// The in-app language row cannot swap the dictionary by itself - the payload is composed here. It
+// writes one pending intent instead, and this consumes it (read + clear in one expression so a
+// second page cannot consume it twice). Clearing is what keeps `ckit locales <code>` authoritative:
+// the key is a request, not the stored setting.
+const PENDING_KEY = "cline-kit.language-pending";
+const CONSUME = "(function(){try{var k=" + JSON.stringify(PENDING_KEY) +
+  ";var v=localStorage.getItem(k);if(v)localStorage.removeItem(k);return v||\"\"}catch(e){return\"\"}})()";
+
+async function consumeLanguageIntent(port) {
+  let wanted = "";
+  const results = await cdp.eachPage(port, async (api) => {
+    const r = await api.rpc("Runtime.evaluate", { expression: CONSUME, returnByValue: true });
+    if (r && r.exceptionDetails) return "";
+    return r && r.result && typeof r.result.value === "string" ? r.result.value : "";
+  });
+  for (const item of results) if (item && !item.error && item.result) wanted = item.result;
+  return wanted;
+}
 
 // Surface injection failures instead of swallowing them; a silent no-op is the worst outcome.
 function log(msg) {
@@ -78,6 +98,16 @@ async function main() {
     try {
       // re-read every cycle so feature toggles, dictionary updates and path changes apply live
       const conf = cfg.read();
+      try {
+        const wanted = await consumeLanguageIntent(conf.port || port);
+        if (wanted && dict.isKnown(wanted) && wanted !== conf.dictionary) {
+          conf.dictionary = wanted;
+          cfg.write(conf);
+          log("language chosen inside Cline -> " + wanted);
+        } else if (wanted && !dict.isKnown(wanted)) {
+          log("ignored unknown language request: " + wanted);
+        }
+      } catch (e) { log("language intent failed: " + e.message); }
       const composed = payload.compose(conf);
       await installOnce(conf.port || port, composed.source, composed.version);
       writeActiveVersion(composed.version);
@@ -93,4 +123,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
-module.exports = { installOnce, readActiveVersion, activeVersionFile };
+module.exports = { installOnce, readActiveVersion, activeVersionFile, consumeLanguageIntent, PENDING_KEY };

@@ -33,6 +33,23 @@ function bundledPath(name) {
   return path.join(__dirname, "..", "dictionaries", name + ".json");
 }
 
+// "none" is a first-class choice, not an absent one: the overlay still runs (the sidebar feature
+// needs it) but replaces no text, so the app reads as Cline shipped it. Both the in-app picker and
+// `ckit locales none` land here.
+const NONE = "none";
+function noneDictionary() {
+  return {
+    version: 0,
+    language: NONE,
+    label: "English (no replacement)",
+    note: "synthetic - translation off",
+    entries: {},
+    prefixes: [],
+    rules: [],
+    sourceVersions: { bundled: 0, cached: 0, local: 0 }
+  };
+}
+
 function validate(d) {
   if (!d || typeof d !== "object") return false;
   if (typeof d.version !== "number") return false;
@@ -96,6 +113,7 @@ function merge(base, extra) {
 
 function load(cfgObj) {
   const name = cfgObj.dictionary || "zh-CN";
+  if (name === NONE) return noneDictionary();
   let dict = readJson(bundledPath(name));
   if (!dict) throw new Error("bundled dictionary missing: " + name);
   const cached = readJson(cfg.cachedDictFile(name));
@@ -120,6 +138,7 @@ async function fetchRemote(url, timeoutMs) {
 // the file name rather than asking users to configure one URL per language.
 function remoteUrlFor(cfgObj) {
   const name = cfgObj.dictionary || "zh-CN";
+  if (name === NONE) return "";
   const url = cfgObj.updateUrl || "";
   return /CHANGE_ME/.test(url) ? url : url.replace(/zh-CN\.json(\?.*)?$/i, name + ".json$1");
 }
@@ -129,6 +148,7 @@ async function update(cfgObj, opts) {
   opts = opts || {};
   const now = Date.now();
   if (!opts.force && !cfgObj.autoUpdate) return { updated: false, reason: "autoUpdate disabled" };
+  if (cfgObj.dictionary === NONE) return { updated: false, reason: "translation is off" };
   if (!opts.force && (now - (cfgObj.lastUpdateCheck || 0)) < (cfgObj.updateIntervalMs || 86400000)) {
     return { updated: false, reason: "not due yet" };
   }
@@ -168,4 +188,37 @@ function available() {
   } catch (e) { return []; }
 }
 
-module.exports = { load, update, validate, bundledPath, nestedQuantifier, remoteUrlFor, available };
+// Everything a picker (in-app or CLI) needs to render one row per choice. `none` leads because
+// "leave the app alone" has to be reachable from the same place.
+// Each language is listed in its own script - the one convention that stays readable no matter which
+// language the interface is currently in. `label` inside a dictionary is the name in *that* language
+// (and English for the machine-assisted ones), which would render a list like
+// "简体中文 / Japanese / Korean" and read like a translation of the current UI rather than a choice.
+const NATIVE_NAMES = {
+  none: "English",
+  "zh-CN": "简体中文",
+  "zh-TW": "繁體中文",
+  ja: "日本語",
+  ko: "한국어",
+  vi: "Tiếng Việt"
+};
+
+function choices() {
+  const out = [{
+    code: NONE, native: NATIVE_NAMES[NONE], label: "English", strings: 0, version: 0, off: true
+  }];
+  for (const code of available().sort()) {
+    const d = readJson(bundledPath(code)) || {};
+    out.push({
+      code, native: NATIVE_NAMES[code] || d.label || code, label: d.label || code,
+      strings: Object.keys(d.entries || {}).length, version: d.version || 0, off: false
+    });
+  }
+  return out;
+}
+
+function isKnown(name) {
+  return name === NONE || available().includes(name);
+}
+
+module.exports = { load, update, validate, bundledPath, nestedQuantifier, remoteUrlFor, available, choices, isKnown, NONE };

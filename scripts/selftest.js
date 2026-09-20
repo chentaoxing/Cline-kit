@@ -163,13 +163,20 @@ test("the injected feature source carries its logic module", () => {
   assert.ok(f.source.includes("var VER = " + f.version), "version marker must survive concatenation");
 });
 
-test("feature text keys stay in sync with the dictionary", () => {
-  const src = fs.readFileSync(path.join(__dirname, "..", "src", "features", "sidebar-groups.js"), "utf8");
-  const used = new Set([...src.matchAll(/\bt\(\s*"([A-Za-z0-9_]+)"/g)].map((m) => m[1]));
-  const d = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "dictionaries", "zh-CN.json"), "utf8"));
-  const have = Object.keys((d.featureText || {})["sidebar-groups"] || {});
-  for (const k of have) assert.ok(used.has(k), "dictionary carries unused key " + k);
-  for (const k of used) assert.ok(have.includes(k), "feature asks for " + k + " which zh-CN does not define");
+test("every feature's text keys stay in sync with every dictionary", () => {
+  const dir = path.join(__dirname, "..", "src", "features");
+  for (const def of features.DEFS) {
+    const file = (def.parts || [def.file])[def.parts ? def.parts.length - 1 : 0];
+    const src = fs.readFileSync(path.join(dir, file), "utf8");
+    const used = new Set([...src.matchAll(/\bt\(\s*"([A-Za-z0-9_]+)"/g)].map((m) => m[1]));
+    if (!used.size) continue;
+    for (const code of dict.available()) {
+      const d = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "dictionaries", code + ".json"), "utf8"));
+      const have = Object.keys((d.featureText || {})[def.id] || {});
+      for (const k of used) assert.ok(have.includes(k), `${def.id} asks for "${k}" which ${code} does not define`);
+      for (const k of have) assert.ok(used.has(k), `${code} carries unused key ${def.id}.${k}`);
+    }
+  }
 });
 
 // ---------------------------------------------------------------- dictionary
@@ -316,10 +323,12 @@ test("ckit locales lists every bundled dictionary, and --help points at it", () 
 
   const list = spawnSync(node, [cli, "locales"], { encoding: "utf8" });
   assert.strictEqual(list.status, 0, "ckit locales exited " + list.status + ": " + list.stderr);
+  assert.match(list.stdout, /^\s+\S*none\s+English/m, "'none' must be pickable from the CLI too");
+  assert.match(list.stdout, /Settings -> Interface language/, "point at the in-app choice");
   for (const code of codes) {
     assert.match(list.stdout, new RegExp("(^|\\s)" + code.replace("-", "\\-") + "\\s"), code + " missing from `ckit locales`");
-    // every row carries its native name, string count and version so the choice is informed
-    assert.match(list.stdout, new RegExp(code.replace("-", "\\-") + "\\s+\\S+.*\\d+ strings\\s+v\\d+"), code + " row incomplete");
+    // every real locale shows its string count and dictionary version so the choice is informed
+    assert.match(list.stdout, new RegExp(code.replace("-", "\\-") + "\\s+\\S+.*\\d+ strings.*v\\d+"), code + " row incomplete");
   }
   assert.match(list.stdout, /\*/, "the active language should be marked");
   assert.match(list.stdout, /ckit locales </, "should tell the user how to switch");
@@ -340,6 +349,44 @@ test("ckit locales lists every bundled dictionary, and --help points at it", () 
   assert.strictEqual((cliSrc.match(/languageTip\(/g) || []).length, 3, "one definition + install + start call");
   const cfg = require("../src/config");
   assert.strictEqual(cfg.DEFAULTS.hintLanguageShown, false, "the start hint is shown once and defaults to unseen");
+});
+
+// ---------------------------------------------------------------- in-app language row
+test("the language-picker reaches the payload with every choice and the right anchor", () => {
+  const base = { dictionary: "zh-CN", features: {} };
+  const d = dict.load(base);
+  const resolved = features.resolve(base, d);
+  const f = resolved.picked.find((x) => x.id === "language-picker");
+  assert.ok(f, "language-picker should be on by default");
+  const codes = f.config.choices.map((c) => c.code);
+  assert.deepStrictEqual(codes, ["none", "ja", "ko", "vi", "zh-CN", "zh-TW"], "choice list drifted: " + codes);
+  assert.strictEqual(f.config.current, "zh-CN", "the row must show the applied locale");
+  assert.strictEqual(f.config.pendingKey, "cline-kit.language-pending");
+  assert.deepStrictEqual(f.config.anchors, ["Dark mode", d.entries["Dark mode"]], "anchor needs both spellings");
+  // every button label the row will render
+  for (const c of f.config.choices) assert.ok(c.native, c.code + " has no display name");
+  const natives = f.config.choices.map((c) => c.native);
+  assert.strictEqual(new Set(natives).size, natives.length, "two languages share one display name: " + natives);
+  assert.deepStrictEqual(natives, ["English", "日本語", "한국어", "Tiếng Việt", "简体中文", "繁體中文"],
+    "each language must be named in its own script, got " + natives.join(" / "));
+  assert.ok(f.config.choices[0].off, "English/no-replacement must lead the list");
+  assert.ok(f.source.includes("data-ckit-ui"), "the row must exempt itself from translation");
+});
+
+test("turning replacement off is a real setting, not a missing file", () => {
+  const d = dict.load({ dictionary: dict.NONE });
+  assert.strictEqual(d.language, "none");
+  assert.deepStrictEqual(d.entries, {}, "off must not carry strings");
+  assert.ok(dict.validate(d), "the empty dictionary must still validate");
+  assert.strictEqual(dict.remoteUrlFor({ dictionary: "none", updateUrl: "https://x/zh-CN.json" }), "", "off must not fetch");
+  assert.ok(dict.isKnown("none") && dict.isKnown("ja") && !dict.isKnown("de"));
+});
+
+test("a config change alone re-injects, so a feature cannot run on stale config", () => {
+  const a = payload.compose({ dictionary: "ja", features: {} });
+  const b = payload.compose({ dictionary: "ko", features: {} });
+  assert.notStrictEqual(a.version, b.version, "same dictionary version, different language -> same version");
+  assert.ok(a.source.includes('"current":"ja"') && b.source.includes('"current":"ko"'), "current locale must reach the feature");
 });
 
 console.log("");
