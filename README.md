@@ -67,7 +67,7 @@ ckit start                  # launch Cline with the enhancements now
 
 **2. Release zip (no global install)**
 
-Download `cline-kit-vX.Y.Z-win.zip` from [Releases](../../releases), unzip anywhere, and run the bundled
+Download `cline-kit-vX.Y.Z-win.zip` from [Releases](https://github.com/chentaoxing/Cline-kit/releases), unzip anywhere, and run the bundled
 shim once from that folder:
 
 ```cmd
