@@ -1,4 +1,4 @@
-/* cline-zh-overlay engine (browser side).
+/* cline-kit overlay engine (browser side).
  * Runs inside the Cline webview. Expects a `DICT` const in scope:
  *   { version, entries: {en: zh}, prefixes: [{from,to}], rules: [{pattern,out}] }
  * No dependencies, no network, no eval of remote code beyond this data.
@@ -9,11 +9,11 @@
   // changes behaviour but leaves DICT.version untouched, so a version-only guard would keep the
   // old engine running forever.
   var BUILD = String((DICT && DICT.engineBuild) || "v" + VER);
-  if (window.__zhUIBuild === BUILD) return;
-  if (window.__zhUIObserver) { try { window.__zhUIObserver.disconnect(); } catch (e) { } }
-  if (window.__zhUITimer) { clearInterval(window.__zhUITimer); }
-  window.__zhUIBuild = BUILD;
-  window.__zhUIVersion = VER;
+  if (window.__ckitEngineBuild === BUILD) return;
+  if (window.__ckitObserver) { try { window.__ckitObserver.disconnect(); } catch (e) { } }
+  if (window.__ckitTimer) { clearInterval(window.__ckitTimer); }
+  window.__ckitEngineBuild = BUILD;
+  window.__ckitEngineVersion = VER;
 
   var ENTRIES = DICT.entries || {};
   var PREFIXES = DICT.prefixes || [];
@@ -97,7 +97,7 @@
   if (!document.documentElement) return;
   scan(document.documentElement);
 
-  window.__zhUIObserver = new MutationObserver(function (muts) {
+  window.__ckitObserver = new MutationObserver(function (muts) {
     for (var i = 0; i < muts.length; i++) {
       var m = muts[i];
       if (m.type === "characterData") { translateText(m.target); continue; }
@@ -106,14 +106,14 @@
     }
     schedule();
   });
-  window.__zhUIObserver.observe(document.documentElement, {
+  window.__ckitObserver.observe(document.documentElement, {
     childList: true, subtree: true, characterData: true,
     attributes: true, attributeFilter: ATTRS
   });
 
   // safety net for portals/menus mounted outside the observed subtree
-  window.__zhUITimer = setInterval(function () { scan(document.documentElement); }, 1200);
+  window.__ckitTimer = setInterval(function () { scan(document.documentElement); }, 1200);
 
   window.__zhUIStats = { version: VER, entries: Object.keys(ENTRIES).length };
-  try { console.log("[cline-zh] overlay v" + VER + " loaded (" + Object.keys(ENTRIES).length + " entries)"); } catch (e) { }
+  try { console.log("[cline-kit] overlay v" + VER + " loaded (" + Object.keys(ENTRIES).length + " entries)"); } catch (e) { }
 })();

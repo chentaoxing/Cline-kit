@@ -3,12 +3,12 @@
 // already have sessions. Native Cline hides empty projects; this appends them with the same styling
 // and switches project by driving Cline's own workspace picker (chip -> search -> result row).
 //
-// Runs inside the webview. Config arrives as window.__clineZhFeature["sidebar-groups"].
+// Runs inside the webview. Config arrives as window.__clineKitFeature["sidebar-groups"].
 (function () {
   var ID = "sidebar-groups";
   var VER = 4;                       // human-readable; hot-swap keys off CFG.__build instead
-  var CFG = (window.__clineZhFeature && window.__clineZhFeature[ID]) || {};
-  var st = window.__clineZhFeatureState = window.__clineZhFeatureState || {};
+  var CFG = (window.__clineKitFeature && window.__clineKitFeature[ID]) || {};
+  var st = window.__clineKitFeatureState = window.__clineKitFeatureState || {};
   var BUILD = String(CFG.__build || "v" + VER);
   if (st[ID + "_build"] === BUILD) return;
   if (st[ID + "_observer"]) { try { st[ID + "_observer"].disconnect(); } catch (e) { } }
@@ -80,7 +80,7 @@
     for (var i = 0; i < bs.length; i++) {
       var b = bs[i];
       if (!/h-8 w-full/.test(b.className)) continue;
-      if (b.closest("[data-czh-feat]")) continue; // our own rows must not hide our own rows
+      if (b.closest("[data-ckit-feat]")) continue; // our own rows must not hide our own rows
       var sp = b.querySelector("span");
       var name = norm(sp ? sp.textContent : b.textContent);
       if (name) set[name] = true;
@@ -194,7 +194,7 @@
   function buildRow(ws, isCurrent) {
     var wrap = document.createElement("div");
     wrap.className = "mb-1 min-w-0";
-    wrap.setAttribute("data-czh-feat", ID);
+    wrap.setAttribute("data-ckit-feat", ID);
     wrap.dataset.wsPath = ws;
 
     var head = document.createElement("button");
@@ -261,21 +261,34 @@
     return false;
   }
 
-  // Native grouping mode is not persisted by Cline, so switch to it once per page load. If the user
-  // later flips back to time ordering on purpose, we stop interfering for the rest of the session.
-  var forced = false;
-  function ensureProjectMode() {
-    if (forced || CFG.groupMode === false) return;
-    forced = true;
+  // Native grouping mode is not persisted by Cline, so keep it on. We stop interfering the moment
+  // the user touches the sort control themselves - their choice wins for the rest of the session,
+  // but a mode flip caused by anything else (React state churn, another overlay, a workspace switch
+  // that rebuilds the window) is corrected on the next tick instead of leaving the feature off.
+  var userTouchedSort = false;
+  function sortButton() {
     var btns = document.querySelectorAll("button");
     for (var i = 0; i < btns.length; i++) {
       var a = btns[i].getAttribute("aria-label") || "";
-      if (/会话排序：时间|Sort sessions: Time/i.test(a)) {
-        btns[i].click();
-        setTimeout(render, 300);
-        return;
-      }
+      if (/会话排序|Sort sessions/i.test(a)) return btns[i];
     }
+    return null;
+  }
+  document.addEventListener("click", function (ev) {
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    var b = t.closest("button");
+    if (b && /会话排序|Sort sessions/i.test(b.getAttribute("aria-label") || "")) userTouchedSort = true;
+  }, true);
+
+  var lastAutoClick = 0;
+  function ensureProjectMode() {
+    if (userTouchedSort || CFG.groupMode === false) return;
+    if (projectMode()) return;
+    // cooldown so a detection mismatch cannot turn into a click loop every tick
+    if (Date.now() - lastAutoClick < 6000) return;
+    var btn = sortButton();
+    if (btn) { lastAutoClick = Date.now(); btn.click(); setTimeout(render, 300); }
   }
 
   var sig = "";
@@ -299,7 +312,7 @@
     // Self-heal: compare what we intended against what is actually in the DOM. If anything rewrote
     // or dropped our labels (React reconciliation, another overlay, a partial render), rebuild.
     var dom = [];
-    var ours = box.querySelectorAll(":scope > [data-czh-feat]");
+    var ours = box.querySelectorAll(":scope > [data-ckit-feat]");
     for (var k = 0; k < ours.length; k++) {
       var sp = ours[k].querySelector("span");
       dom.push((ours[k].dataset.wsPath || "") + "=" + (sp ? sp.textContent : ""));
@@ -317,7 +330,7 @@
   function clearRows() {
     var box = listRoot();
     if (!box) return;
-    var olds = box.querySelectorAll(":scope > [data-czh-feat]");
+    var olds = box.querySelectorAll(":scope > [data-ckit-feat]");
     for (var i = 0; i < olds.length; i++) olds[i].remove();
   }
 
@@ -334,7 +347,7 @@
     for (var i = 0; i < muts.length; i++) {
       var n = muts[i].target;
       if (n && n.nodeType === 3) n = n.parentElement;
-      if (n && n.closest && n.closest("[data-czh-feat]")) continue;
+      if (n && n.closest && n.closest("[data-ckit-feat]")) continue;
     }
     schedule();
   });
@@ -342,5 +355,5 @@
     childList: true, subtree: true, attributes: true, attributeFilter: ["class", "aria-expanded"]
   });
   st[ID + "_timer"] = setInterval(render, 1500);
-  try { console.log("[cline-zh:" + ID + "] loaded v" + VER); } catch (e) { }
+  try { console.log("[cline-kit:" + ID + "] loaded v" + VER); } catch (e) { }
 })();

@@ -65,7 +65,7 @@ async function start(opts) {
   const conf = cfg.read();
   const found = detect.detect(conf);
   if (!found.path) {
-    throw new Error("cline-app.exe not found. Set it with: cline-zh config --cline-path \"C:\\path\\cline-app.exe\"");
+    throw new Error("cline-app.exe not found. Set it with: cline-kit config --cline-path \"C:\\path\\cline-app.exe\"");
   }
   let port = conf.port;
   let alive = port ? await isPortAlive(port) : false;
@@ -92,8 +92,9 @@ async function start(opts) {
       await new Promise((r) => setTimeout(r, 500));
     }
   }
-  // Restart the injector when it is missing *or* when it is running stale code (e.g. after a
-  // git pull), otherwise the update silently appears to do nothing.
+  // cwd must NOT be src/: a process whose working directory is inside the folder locks it,
+  // which blocks renaming the checkout or replacing files on update.
+  const repoRoot = path.join(__dirname, "..");
   const injectorPath = path.join(__dirname, "injector.js");
   let stale = false;
   try {
@@ -105,7 +106,7 @@ async function start(opts) {
   } catch (e) { stale = false; }
   if (stale) stop();
   if (!injectorRunning() || stale) {
-    spawnHidden(process.execPath, [injectorPath], { cwd: __dirname });
+    spawnHidden(process.execPath, [injectorPath], { cwd: repoRoot });
   }
   return { exe: found.path, source: found.source, port, debugPortAlive: alive, restartedInjector: stale };
 }

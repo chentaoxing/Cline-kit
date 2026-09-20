@@ -1,154 +1,143 @@
-# cline-zh-overlay
+# cline-kit
 
-Simplified Chinese UI for the **Cline desktop app** on Windows — without patching the app.
+Enhancements for the **Cline desktop app** on Windows, delivered as a runtime overlay — no patched
+binaries, no fork.
 
 [中文说明](README.zh-CN.md)
 
-## Why this exists
+**Flagship feature:** Cline's sidebar project groups only show folders that already have sessions.
+Every project you registered but have not opened yet is simply invisible. `cline-kit` keeps all of
+them listed, with the same styling as the native groups, and lets you switch into an empty project
+straight from the sidebar.
 
-The Cline desktop app (v0.0.32 at the time of writing) has **no language setting** and ships no
-localisation bundles: Settings → General only offers notifications, dark mode, font size, accent
-colour, app icon, web search, CLI auto-update and telemetry. Forcing the WebView2 locale
-(`--lang=zh-CN`) does nothing, and WebView2 refuses `--load-extension`, so a browser extension is not
-a distribution route either. The app's own plugin surface (Tools / Plugins / Skills / Rules / MCP /
-Hooks) extends the *agent*, not the renderer, so it cannot change UI strings.
+**Secondary feature:** UI locale packs (简体中文 today; 繁體中文 / 日本語 / 한국어 / Tiếng Việt use the
+same format). Locales exist because the same injection channel can carry them — they are not what the
+project is for.
 
-This project takes the only remaining route that does not modify the binary: start Cline with a
-private DevTools port and inject a translation overlay into the webview.
+## The sidebar problem
+
+Native Cline groups sessions by project (the `Sort sessions: Time ⇄ Project` toggle), but the group
+list is derived from *existing sessions*. Register 17 project folders, keep sessions in 3 of them, and
+the sidebar shows 3. The `sidebar-groups` feature fixes that:
+
+| | before | after |
+| --- | --- | --- |
+| registered projects shown | 3 | 17 |
+| projects without sessions | hidden | listed and expandable, marked "No sessions yet" |
+| switching into an empty project | not possible from the sidebar | one click, driven through Cline's own workspace picker |
+
+Nothing is written into Cline's storage: switching a project drives the app's own picker (chip →
+search → result row), so the behaviour is identical to doing it by hand.
 
 ## How it works
 
 ```
-cline-zh start
+ckit start
   ├── launches cline-app.exe with WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<random>
   ├── connects to the DevTools endpoint on 127.0.0.1
-  └── keeps a small injector alive that installs src/engine.js + dictionaries/zh-CN.json
-        └── MutationObserver replaces English text nodes and placeholder/aria-label/title attributes
+  └── a keep-alive injector installs engine.js + enabled features (+ locale data when a dictionary is loaded)
+        └── MutationObserver keeps the project groups present and, with a locale active,
+            replaces English text nodes and placeholder/aria-label/title attributes
 ```
 
-Nothing is written into `cline-app.exe`; the app signature, install directory and auto-update all stay
-untouched. The dictionary is data (JSON), not code.
+`cline-app.exe` is never modified: signature, install directory and auto-update all stay as shipped.
+Feature code and locale data are independent — run cline-kit for the sidebar only, for locales only,
+or both.
 
 ## Requirements
 
-* Windows 10/11 (macOS/Linux are not supported yet — see [Limitations](#limitations))
-* [Node.js](https://nodejs.org) 20.10 or newer (needs the global `WebSocket` and `fetch`)
-* Cline desktop app installed
+* Windows 10/11 (macOS/Linux not supported yet — see [Limitations](#limitations))
+* [Node.js](https://nodejs.org) 20.10 or newer (global `WebSocket` and `fetch`)
+* The Cline desktop app installed (verified against v0.0.32)
 
 ## Install
 
 ```bash
-git clone https://github.com/CHANGE_ME/cline-zh-overlay.git
-cd cline-zh-overlay
-npm install -g .        # or run the CLI directly: node src/cli.js
-cline-zh install        # points your existing Cline shortcut at the Chinese launcher
-cline-zh start          # launch Cline with the overlay right now
+git clone https://github.com/CHANGE_ME/cline-kit.git
+cd cline-kit
+npm install -g .            # or run it directly: node src/cli.js
+ckit install                # point your existing Cline shortcut at the kit launcher
+ckit start                  # launch Cline with the enhancements now
 ```
 
-`cline-zh install` finds the Cline shortcut in the Start Menu / Desktop, saves its original target in
-`%APPDATA%\cline-zh\config.json`, and repoints it at a hidden launcher. From then on, opening Cline
-the normal way gives you Chinese.
+`ckit install` locates the Cline shortcut in the Start Menu / Desktop, saves its original target in
+`%APPDATA%\cline-kit\config.json`, and repoints it at a hidden launcher. Opening Cline the normal way
+then gives you the enhanced sidebar.
 
 ## Usage
 
 | Command | What it does |
 | --- | --- |
-| `cline-zh start` | Launch Cline with the overlay attached (`--restart` closes the running instance first) |
-| `cline-zh status` | Detected Cline path, debug port, injector process, dictionary version |
-| `cline-zh install` / `uninstall` | Repoint / restore your Cline shortcut |
-| `cline-zh update` | Pull the latest dictionary from GitHub (`--force` to check now) |
-| `cline-zh audit` | Walk the UI and list strings still in English — use this after a Cline update |
-| `cline-zh dict` | Dictionary statistics and the path of your local override file |
-| `cline-zh config` | Inspect or set `--cline-path`, `--port`, `--auto-update=on\|off` |
+| `ckit start` | Launch Cline with the overlay attached (`--restart` closes the running instance first) |
+| `ckit stop` | Stop the background injector; Cline itself is untouched |
+| `ckit status` | Detected Cline path, debug port, injector process, loaded build version |
+| `ckit features` | List feature plugins and whether each is on |
+| `ckit feature enable\|disable <id>` | Toggle a feature (applies within ~4 s, no restart) |
+| `ckit install` / `uninstall` | Repoint / restore your Cline shortcut |
+| `ckit update` | Pull the latest locale dictionary from GitHub (`--force` to check now) |
+| `ckit audit` | Walk the UI and list strings still in English |
+| `ckit dict` | Dictionary statistics and the local override path |
+| `ckit config` | Inspect or set `--cline-path`, `--port`, `--auto-update=on\|off` |
 
 ## Features
 
-Translation is only one layer. `cline-zh features` lists the optional overlays that share the same
-injection channel, and `cline-zh feature enable|disable <id>` toggles them live (~4 s, no restart).
+`ckit features` shows the live list.
 
-* **`sidebar-groups`** (on by default) — Cline's native project grouping hides any registered workspace
-  that has no sessions yet. This appends the missing ones with matching styling, and switches project by
-  driving Cline's own workspace picker rather than touching its storage. See
-  [`docs/features.zh-CN.md`](docs/features.zh-CN.md) for the design notes (container vs project detection,
-  install-directory injection, why group mode is re-applied exactly once per load).
-
-## Customising wording
-
-Add or edit entries in `dictionaries/zh-CN.json`:
-
-```json
-{
-  "entries":  { "Save": "保存" },
-  "prefixes": [ { "from": "Model: ", "to": "模型：" } ],
-  "rules":    [ { "pattern": "^Thought for (\\d+)s$", "out": "思考了 $1 秒" } ]
-}
-```
-
-Matching is **whole string only** (no substring rewrites), so model names and code can't be mangled.
-Rules are evaluated before prefixes, and `$1..$9` come from capture groups. Patterns must be anchored
-(`^…$`) — remote dictionaries that fail validation are rejected.
-
-For personal tweaks that should survive a tool update, put them in
-`%APPDATA%\cline-zh\zh-CN.local.json`; local overrides win over the bundled and cached dictionary.
-
-The running injector re-reads the dictionary every 4 seconds, so edits apply without restarting Cline.
+* **`sidebar-groups`** (on by default) — the always-listed project groups described above. It decides
+  what counts as a project on its own: a registered path that contains other registered paths, or sits
+  inside the app's install directory, is treated as a container and not listed. No per-machine
+  configuration is needed. If you click Cline's own sort control, your choice wins for the rest of the
+  session; otherwise the kit keeps project grouping on. Design notes:
+  [`docs/features.zh-CN.md`](docs/features.zh-CN.md).
+* **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model
+  names, provider names, tool identifiers and code cannot be mangled. The zh-CN corpus is 476 entries
+  plus 30 pattern rules, built by combining a UI walk with extraction from the app's own source; see
+  [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md).
 
 ## Limitations
 
-* **Windows only.** The injection route depends on a WebView2 environment variable. On macOS/Linux
-  Cline uses WKWebView/WebKitGTK, which needs a different mechanism.
-* **Model blurbs stay English.** Per-model one-liners such as "Leading open-weights model" come from a
-  remote provider catalogue with thousands of free-form sentences; no fixed dictionary can cover them.
-* **Proper nouns are not translated** on purpose: Cline, ClinePass, Codex, MCP, provider and model
-  names, tool identifiers such as `read_files`, folder names, and example values.
-* **Cline updates can break strings.** When the app renames a label the overlay simply leaves it in
-  English; run `cline-zh audit` and open an issue (or a PR) with the output.
-* Opening Cline **directly** (double-clicking `cline-app.exe`, or a shortcut that was not repointed)
-  gives an English UI, because there is no debug port to attach to.
+* **Windows only.** The injection route relies on a WebView2 environment variable; macOS/Linux use
+  WKWebView/WebKitGTK and need a different mechanism.
+* **Launch through the kit.** Opening `cline-app.exe` directly (or via a shortcut that was never
+  repointed) has no debug port to attach to, so you get plain Cline.
+* **Cline updates can break things.** If the app renames a label, the locale leaves it in English; if
+  it restructures the sidebar, `sidebar-groups` needs updating. Run `ckit audit` and open an issue.
+* **Per-model description blurbs stay English** — free-form text from a remote provider catalogue.
+* Proper nouns are never translated: Cline, provider and model names, tool identifiers, paths.
 
 ## Security
 
-`cline-zh start` opens a DevTools port on `127.0.0.1` for as long as Cline runs. Any process on the
-same machine can drive the Cline UI through that port. The port number is random per session, is bound
-to loopback only, and is not written as a system-wide environment variable. See
-[SECURITY.md](SECURITY.md).
+`ckit start` opens a DevTools port on `127.0.0.1` for as long as Cline runs; any process running as
+you can drive the Cline UI through it. The port is random per session, loopback-only, and never set as
+a system-wide environment variable. Remote dictionaries are validated (shape, size, anchored regexes)
+and rejected outright if malformed. Details in [SECURITY.md](SECURITY.md).
 
 ## Uninstall
 
 ```bash
-cline-zh uninstall      # restores the original Cline shortcut and stops the injector
-del /q "%APPDATA%\cline-zh"   # optional: remove config, cache and logs
-npm uninstall -g cline-zh-overlay
+ckit uninstall                    # restores the original Cline shortcut and stops the injector
+del /q "%APPDATA%\cline-kit"      # optional: remove config, cache, logs
+npm uninstall -g cline-kit
 ```
-
-## Contributing
-
-The dictionary is the valuable part. Run `cline-zh audit` after using the app for a while, add the
-missing strings to `dictionaries/zh-CN.json`, bump `version`, and open a PR.
-
-There is also an active upstream request for official i18n — see
-[`docs/upstream-i18n.md`](docs/upstream-i18n.md) for the existing threads ([#12518](https://github.com/cline/cline/issues/12518),
-[#13811](https://github.com/cline/cline/pull/13811)), what we posted there, the survey of similar
-community tools, and the plan to port #13811's `@cline/i18n` into `apps/examples/desktop-app`. Upstream
-support would make this tool's translation layer unnecessary, which is the better outcome.
 
 ## Relationship to other projects
 
-**[cline-chinese](https://github.com/HybridTalentComputing/cline-chinese)** is a widely used
-(Apache-2.0, ~660 stars) **fork of the VS Code extension** with translated source. It solves a different
-problem on a different surface: it localises the IDE extension, and because it is a fork it tracks
-upstream on its own release cadence (its latest release is `v3.46.9`, behind current upstream) and
-requires installing a separate extension. It contains no desktop-app code.
+[`JACK5920/cline-desktop-zh`](https://github.com/JACK5920/cline-desktop-zh) and
+[`ExSchwi/cline-desktop-zh-cn`](https://github.com/ExSchwi/cline-desktop-zh-cn) cover the **language**
+half of this well and are worth using if all you want is a Chinese UI;
+[`cline-chinese`](https://github.com/HybridTalentComputing/cline-chinese) is a fork of the **VS Code
+extension**, a different surface again. cline-kit overlaps them only on locales — its reason to exist
+is the sidebar/project behaviour, plus the packaging (reversible installer, path auto-detection,
+random port, feature toggles, `ckit audit`). Design credit is recorded in [NOTICE](NOTICE).
 
-This project covers the **desktop app**, does not fork anything, and keeps working across Cline updates
-as long as the labels themselves don't change — but it is a runtime overlay, so it inherits the
-limitations above and is strictly a stopgap until an official locale exists.
+The better long-term outcome is upstream: an official language setting, and a sidebar that lists all
+registered projects. See [`docs/upstream-i18n.md`](docs/upstream-i18n.md) for the threads we have
+engaged on ([#12518](https://github.com/cline/cline/issues/12518),
+[#13811](https://github.com/cline/cline/pull/13811)).
 
 ## License
 
-MIT — see [LICENSE](LICENSE). This project is not affiliated with, endorsed by, or part of Cline.
-
-[NOTICE](NOTICE) records the provenance: the English dictionary keys are Cline desktop UI strings
-(read from the running app and from `apps/examples/desktop-app` in the Apache-2.0 `cline/cline`
-repository), the Chinese values are original translations, no upstream code or assets are shipped, and
-the two community projects whose *design ideas* influenced this one are credited there.
+MIT — see [LICENSE](LICENSE). [NOTICE](NOTICE) records provenance: unofficial project, no upstream code
+or assets shipped, English locale keys are Cline's own UI strings read from `apps/examples/desktop-app`
+in the Apache-2.0 [`cline/cline`](https://github.com/cline/cline) repository, translated values are
+original. Not affiliated with, endorsed by, or part of Cline.

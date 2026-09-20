@@ -22,7 +22,7 @@ git ls-files | grep -E "^\.cache/|\.local\.json$|audit-report" || echo "clean"
 
 * `cline-desktop-zh` → 已被 `JACK5920` 使用（同方向项目）
 * `cline-desktop-zh-cn` → 已被 `ExSchwi` 使用
-* `cline-zh-overlay`、`cline-zh-corpus`、`cline-zh-kit` → npm 与账号下均空闲
+* `cline-kit`、`cline-kit-corpus`、`cline-kit-kit` → npm 与账号下均空闲
 
 npm 名必须小写。定了之后，下面三处占位一起替换。
 
@@ -57,14 +57,14 @@ git tag v0.1.0 && git push origin v0.1.0     # 触发 .github/workflows/release.
 
 ## 6. 发布后的两件事
 
-* 把 `cline-zh-overlay` 的链接补进 cline/cline 的 [#12518](https://github.com/cline/cline/issues/12518)
+* 把 `cline-kit` 的链接补进 cline/cline 的 [#12518](https://github.com/cline/cline/issues/12518)
   与 [#13811](https://github.com/cline/cline/pull/13811) 评论（已经在那里说明过本项目，公开后应给出可点的地址）。
 * 与并行的 `cline-sidebar-groups` 会话对齐：它的 `apply-to-overlay.js` 会直接改 `src/payload.js`。
-  本项目已经提供正式的插件机制（`src/features/` + `cline-zh feature enable <id>`），它那份补丁应当退役，
+  本项目已经提供正式的插件机制（`src/features/` + `ckit feature enable <id>`），它那份补丁应当退役，
   否则两边会同时改同一个容器里的侧边栏行并互相判定为"原生分组"。
 
 ## 7. 已知未做（发布时要在 README 里承认）
 
 * 仅 Windows；macOS/Linux 的注入通道不同，未实现。
 * 模型列表里每条模型的一句英文简介未覆盖（云端动态自由文本）。
-* 词典按 0.0.32 校准；Cline 升级后需重跑 `cline-zh audit` 补差量。
+* 词典按 0.0.32 校准；Cline 升级后需重跑 `ckit audit` 补差量。

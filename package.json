@@ -1,22 +1,30 @@
 {
-  "name": "cline-zh-overlay",
+  "name": "cline-kit",
   "version": "0.1.0",
-  "description": "Simplified Chinese UI overlay for the Cline desktop app (Windows). No binary patching - injects a translation layer over the WebView2 debug port.",
+  "description": "Desktop enhancement kit for the Cline desktop app (Windows): keeps every registered project visible in the sidebar, and adds optional UI locale packs (zh-CN, zh-TW, ja, ko, vi). Runtime overlay - no binary patching.",
   "keywords": [
     "cline",
+    "desktop-app",
+    "sidebar",
+    "workspace",
+    "project-groups",
     "i18n",
     "l10n",
-    "chinese",
-    "zh-cn",
-    "localization",
+    "locale",
+    "zh-CN",
+    "zh-TW",
+    "ja",
+    "ko",
+    "vi",
     "webview2",
-    "desktop-app"
+    "overlay"
   ],
   "license": "MIT",
   "author": "chentaoxing",
-  "notices": "See NOTICE: unofficial project; English keys are Cline desktop UI strings (upstream cline/cline is Apache-2.0); Chinese values are original translations.",
+  "notices": "See NOTICE: unofficial project; locale dictionary keys are Cline desktop UI strings (upstream cline/cline is Apache-2.0); translated values are original.",
   "bin": {
-    "cline-zh": "src/cli.js"
+    "cline-kit": "src/cli.js",
+    "ckit": "src/cli.js"
   },
   "main": "src/cli.js",
   "files": [
@@ -43,9 +51,9 @@
   "dependencies": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CHANGE_ME/cline-zh-overlay.git"
+    "url": "git+https://github.com/CHANGE_ME/cline-kit.git"
   },
   "bugs": {
-    "url": "https://github.com/CHANGE_ME/cline-zh-overlay/issues"
+    "url": "https://github.com/CHANGE_ME/cline-kit/issues"
   }
 }

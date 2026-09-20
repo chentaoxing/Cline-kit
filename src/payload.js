@@ -30,9 +30,9 @@ function compose(cfgObj) {
     // hot-swaps it without anyone remembering to bump a VER constant
     const cfgObjForFeature = Object.assign({}, f.config, { __build: hash12(f.source) });
     parts.push(
-      "window.__clineZhFeature = window.__clineZhFeature || {};",
-      "window.__clineZhFeature[" + json(f.id) + "] = " + json(cfgObjForFeature) + ";",
-      "try {\n" + f.source + "\n} catch (e) { try { console.error('[cline-zh] feature " + f.id + " failed:', e && e.message); } catch (_) { } }"
+      "window.__clineKitFeature = window.__clineKitFeature || {};",
+      "window.__clineKitFeature[" + json(f.id) + "] = " + json(cfgObjForFeature) + ";",
+      "try {\n" + f.source + "\n} catch (e) { try { console.error('[cline-kit] feature " + f.id + " failed:', e && e.message); } catch (_) { } }"
     );
   }
 

@@ -6,18 +6,18 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 const cfg = require("./config");
 
-const VBS = (ps1) => `' cline-zh-overlay launcher - starts Cline with the translation overlay
+const VBS = (ps1) => `' cline-kit launcher - starts the Cline desktop app with the enhancement overlay
 Set sh = CreateObject("WScript.Shell")
 sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""${ps1}""", 0, False
 `;
 
-const PS1 = (nodeExe, argsString) => `# cline-zh-overlay launcher
+const PS1 = (nodeExe, argsString) => `# cline-kit launcher
 $ErrorActionPreference = 'Stop'
 try {
   Start-Process -FilePath ${psQuote(nodeExe)} -ArgumentList ${psQuote(argsString)} -WindowStyle Hidden
 } catch {
   # surface failures instead of silently doing nothing
-  $log = Join-Path $env:APPDATA 'cline-zh\\launcher-error.log'
+  $log = Join-Path $env:APPDATA 'cline-kit\\launcher-error.log'
   Set-Content -LiteralPath $log -Value ((Get-Date).ToString('o') + ' ' + $_.Exception.Message)
 }
 `;
@@ -86,8 +86,8 @@ Write-Output ($o.TargetPath + [char]9 + $o.Arguments)`;
 function writeLauncherFiles(cfgObj) {
   cfg.ensureDirs();
   const cli = path.join(__dirname, "cli.js");
-  const ps1 = path.join(cfg.configDir(), "launch-cline-zh.ps1");
-  const vbs = path.join(cfg.configDir(), "launch-cline-zh.vbs");
+  const ps1 = path.join(cfg.configDir(), "launch-cline-kit.ps1");
+  const vbs = path.join(cfg.configDir(), "launch-cline-kit.vbs");
   // Windows PowerShell 5.1 reads .ps1 as ANSI unless a UTF-8 BOM is present, and wscript reads
   // .vbs as ANSI unless it is UTF-16LE with a BOM. Without these, any non-ASCII character in the
   // install path (a Chinese username, for example) silently breaks the launcher.
@@ -101,7 +101,7 @@ async function install(cfgObj, opts) {
   if (process.platform !== "win32") throw new Error("shortcut install is Windows-only for now");
   const detect = require("./detect");
   const found = detect.detect(cfgObj);
-  if (!found.path) throw new Error("cline-app.exe not found; set it with `cline-zh config --cline-path ...`");
+  if (!found.path) throw new Error("cline-app.exe not found; set it with `ckit config --cline-path ...`");
   const { vbs } = writeLauncherFiles(cfgObj);
 
   // Re-running `install` must not lose the backup of the original shortcut targets.
@@ -125,7 +125,7 @@ async function install(cfgObj, opts) {
   const touched = [];
   for (const lnk of toPoint) {
     setShortcut(lnk, "C:\\Windows\\System32\\wscript.exe", '"' + vbs + '"', found.path + ",0",
-      path.dirname(found.path), "Cline (中文界面 / cline-zh-overlay)");
+      path.dirname(found.path), "Cline (cline-kit enhanced)");
     touched.push(lnk);
   }
   cfgObj.shortcutPath = touched[0];

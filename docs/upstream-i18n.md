@@ -81,4 +81,4 @@ to match Cline's Apache-2.0 for upstreaming.
 * Treat extra locales as a pipeline, not a workload: extract keys from source, emit a translation
   template, validate, archive per version. Ship `zh-CN` + `zh-TW` as proof; let `ja` / `ko` / `vi` come
   from contributors or upstream.
-* Re-run `cline-zh audit` after each Cline release and keep the corpus current until upstream wins.
+* Re-run `ckit audit` after each Cline release and keep the corpus current until upstream wins.

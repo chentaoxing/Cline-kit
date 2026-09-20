@@ -5,15 +5,15 @@
 ## 列表与开关
 
 ```bash
-cline-zh features                      # 查看所有插件及状态
-cline-zh feature enable  sidebar-groups
-cline-zh feature disable sidebar-groups
+ckit features                      # 查看所有插件及状态
+ckit feature enable  sidebar-groups
+ckit feature disable sidebar-groups
 ```
 
 改完约 4 秒内生效，不需要重启 Cline：注入器每轮重读配置，payload 版本形如 `d3+24c3df82e`
 （字典版本 + 整段源码哈希），任何代码或词典变动都会让它变化。
 
-升级工具本身（`git pull`）之后跑一次 `cline-zh start` 即可——常驻注入器是长驻进程，内存里还是旧模块代码，
+升级工具本身（`git pull`）之后跑一次 `ckit start` 即可——常驻注入器是长驻进程，内存里还是旧模块代码，
 `start` 会比对它记录的已装载版本，发现是旧的就自动重启它。
 
 ## sidebar-groups — 侧边栏全项目常驻
@@ -29,7 +29,7 @@ Cline 原生的「项目分组」只列出**已经有会话**的文件夹，登�
 
 - **哪些算项目、哪些算容器**：如果某个登记路径是另一个登记路径的父目录（例如
   `…\Cline\workspace`），或它位于 Cline 安装目录内，就不当作项目补全。安装目录由工具从
-  `cline-zh` 探测到的路径注入，不写死任何机器上的盘符。
+  `ckit` 探测到的路径注入，不写死任何机器上的盘符。
 - **分组模式不持久**：Cline 重启会回到按时间排序，所以加载后自动切回分组**一次**；
   之后用户手动改回时间模式，插件本轮就不再干预。
 

@@ -1,6 +1,6 @@
 # NOTICE
 
-cline-zh-overlay
+cline-kit
 Copyright (c) 2026 chentaoxing
 
 ## Unofficial
@@ -43,6 +43,6 @@ translated**; both are cited so readers can compare approaches:
 
 ## Icons
 
-No Cline logo or icon asset is bundled. The Start Menu shortcut created by `cline-zh install`
+No Cline logo or icon asset is bundled. The Start Menu shortcut created by `ckit install`
 references the icon **inside the user's own locally installed `cline-app.exe`** by path, so no image
 file is copied into this repository or into a release archive.

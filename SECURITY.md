@@ -2,7 +2,7 @@
 
 ## What this tool does to your machine
 
-`cline-zh start` launches `cline-app.exe` with one extra environment variable, set **only for that
+`ckit start` launches `cline-app.exe` with one extra environment variable, set **only for that
 process tree**:
 
 ```
@@ -16,7 +16,7 @@ That gives the Cline window a Chrome DevTools Protocol endpoint. Consequences wo
    window can see. This is not a vulnerability introduced by this tool (any `--remote-debugging-port`
    user has the same exposure), but it *is* a wider local attack surface than Cline normally has.
 2. **The port is random per session** and bound to loopback only. It is not exposed to the network.
-3. **The port number and Cline path are stored** in `%APPDATA%\cline-zh\config.json` in plain text.
+3. **The port number and Cline path are stored** in `%APPDATA%\cline-kit\config.json` in plain text.
 4. **Injected code is local by default.** The overlay is `src/engine.js` plus a JSON dictionary read from
    disk. Nothing is fetched or executed unless you enable dictionary updates.
 5. **Remote dictionaries are validated, not trusted.** `src/dict.js` rejects a file that is not an
@@ -25,14 +25,14 @@ That gives the Cline window a Chrome DevTools Protocol endpoint. Consequences wo
    `^…$`, or fails to compile. A rejected update is dropped and the local dictionary keeps working.
    Note the residual risk: rule patterns do reach `new RegExp()` in the page, so a malicious dictionary
    could at worst cause CPU waste via a pathological regex — it cannot execute code.
-6. **The installer edits your shortcuts.** `cline-zh install` rewrites the target of any Start Menu or
+6. **The installer edits your shortcuts.** `ckit install` rewrites the target of any Start Menu or
    Desktop `.lnk` that points at your `cline-app.exe`, after saving the original target and arguments in
-   the config file so `cline-zh uninstall` can restore them.
+   the config file so `ckit uninstall` can restore them.
 
 ## Turning network updates off
 
 ```bash
-cline-zh config --auto-update=off
+ckit config --auto-update=off
 ```
 
 With this set the tool never contacts GitHub; the dictionary only changes when you update the tool
@@ -49,5 +49,5 @@ itself.
 ## Reporting a problem
 
 Open an issue. If your concern involves the DevTools port specifically, say so — the mitigation is to run
-`cline-zh stop` and use Cline in English, or to keep the tool installed but only launch Cline through it
+`ckit stop` and use Cline in English, or to keep the tool installed but only launch Cline through it
 when you need Chinese.

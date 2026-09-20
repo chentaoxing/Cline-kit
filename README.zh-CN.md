@@ -1,127 +1,129 @@
-# cline-zh-overlay（中文说明）
+# cline-kit（中文说明）
 
-给 **Cline 桌面版**（Windows）加上简体中文界面，不改动程序本体。
+给 **Cline 桌面版**（Windows）加功能的运行时覆盖层——不改二进制，不 fork。
 
 [English README](README.md)
 
-## 为什么需要它
+**主打功能：** Cline 侧边栏的「项目分组」只显示**已经有会话**的文件夹。你登记过但还没打开过的项目，
+在界面上根本不存在。cline-kit 把所有已登记项目常驻列出，样式与原生分组一致，并且可以直接从侧边栏
+切进一个还没有会话的项目。
 
-Cline 桌面版（写作本文时是 v0.0.32）**没有语言设置**，也没有内置任何语言包：设置 → 通用里只有桌面通知、
-深色模式、字号、强调色、应用图标、网页搜索、CLI 自动更新、遥测。强制 WebView2 区域语言
-（`--lang=zh-CN`）无效；WebView2 又拒绝 `--load-extension`，所以浏览器扩展这条路也走不通。Cline 自己的
-插件体系（Tools / Plugins / Skills / Rules / MCP / Hooks）扩展的是 agent 能力，改不了界面文案。
+**附属功能：** 界面语言包（目前简体中文；繁體中文 / 日本語 / 한국어 / Tiếng Việt 用同一套格式）。
+语言包之所以在这里，是因为同一条注入通道顺带能承载它——它不是这个项目存在的理由。
 
-于是只剩一条不碰二进制的路：让 Cline 带一个本机调试端口启动，再往 WebView 里注入翻译覆盖层。
+## 要解决的问题
+
+Cline 原生其实有一半：侧边栏那个 `会话排序：时间 ⇄ 项目` 开关就是按项目分组。但分组列表是从
+*已有会话*推导出来的——登记 17 个项目文件夹、只在其中 3 个里建过会话，侧边栏就只有 3 个。
+`sidebar-groups` 补的就是这一段：
+
+| | 之前 | 之后 |
+| --- | --- | --- |
+| 显示的已登记项目 | 3 | 17 |
+| 没有会话的项目 | 完全不出现 | 列出、可展开，标注「暂无会话」 |
+| 切进空项目 | 侧边栏做不到 | 一键，走 Cline 自己的工作区选择器 |
+
+不写 Cline 的任何存储：切换项目是驱动它自己的选择器（chip → 搜索框填路径 → 点结果行），
+行为与你手动操作完全一致。
 
 ## 工作原理
 
 ```
-cline-zh start
+ckit start
   ├── 以 WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<随机端口> 启动 cline-app.exe
   ├── 连接 127.0.0.1 上的 DevTools 接口
-  └── 常驻注入器负责安装 src/engine.js + dictionaries/zh-CN.json
-        └── MutationObserver 替换英文文本节点与 placeholder / aria-label / title 属性
+  └── 常驻注入器装载 engine.js + 已启用插件（加载词典时一并装载语言数据）
+        └── MutationObserver 维持项目分组常驻；启用语言包时替换英文文本节点
+            与 placeholder / aria-label / title 属性
 ```
 
-`cline-app.exe` 一个字节都没改：签名、安装目录、自动更新全部照旧。词典是数据（JSON），不是代码。
+`cline-app.exe` 一个字节都没改：签名、安装目录、自动更新全部照旧。插件代码与语言数据彼此独立——
+可以只用项目栏、只用语言包，或两个都开。
 
 ## 环境要求
 
 * Windows 10/11（macOS / Linux 暂不支持，见[已知限制](#已知限制)）
 * [Node.js](https://nodejs.org) 20.10 及以上（需要全局 `WebSocket` 与 `fetch`）
-* 已安装 Cline 桌面版
+* 已安装 Cline 桌面版（在 v0.0.32 上验证）
 
 ## 安装
 
 ```bash
-git clone https://github.com/CHANGE_ME/cline-zh-overlay.git
-cd cline-zh-overlay
-npm install -g .        # 或者直接用：node src/cli.js
-cline-zh install        # 把你现有的 Cline 快捷方式指向中文启动器
-cline-zh start          # 立刻以中文界面启动 Cline
+git clone https://github.com/CHANGE_ME/cline-kit.git
+cd cline-kit
+npm install -g .        # 或直接用：node src/cli.js
+ckit install            # 把你现有的 Cline 快捷方式指向增强启动器
+ckit start              # 立刻以增强模式启动 Cline
 ```
 
-`cline-zh install` 会在开始菜单 / 桌面找到 Cline 快捷方式，把原始目标写进
-`%APPDATA%\cline-zh\config.json` 备份，然后改为指向一个无黑框启动器。之后正常点开 Cline 就是中文。
+`ckit install` 会在开始菜单 / 桌面找到 Cline 快捷方式，把原始目标备份进 `%APPDATA%\cline-kit\config.json`，
+再改为指向一个无黑框启动器。之后正常点开 Cline 就带增强功能。
 
 ## 命令
 
 | 命令 | 作用 |
 | --- | --- |
-| `cline-zh start` | 启动 Cline 并挂上中文界面（`--restart` 会先退出正在运行的实例） |
-| `cline-zh status` | 显示探测到的 Cline 路径、调试端口、注入器进程、词典版本 |
-| `cline-zh install` / `uninstall` | 改写 / 还原 Cline 快捷方式 |
-| `cline-zh update` | 从 GitHub 拉取最新词典（`--force` 立即检查） |
-| `cline-zh audit` | 走查界面，列出仍是英文的字符串——Cline 更新后先跑这个 |
-| `cline-zh dict` | 词典统计与本地覆盖文件路径 |
-| `cline-zh config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off` |
+| `ckit start` | 以增强层启动 Cline（`--restart` 先退出正在运行的实例） |
+| `ckit stop` | 结束后台注入器，不影响 Cline 本身 |
+| `ckit status` | 探测到的 Cline 路径、调试端口、注入器进程、已装载构建版本 |
+| `ckit features` | 列出功能插件与开关状态 |
+| `ckit feature enable\|disable <id>` | 开关某个插件（约 4 秒生效，无需重启） |
+| `ckit install` / `uninstall` | 改写 / 还原 Cline 快捷方式 |
+| `ckit update` | 从 GitHub 拉取最新语言词典（`--force` 立即检查） |
+| `ckit audit` | 走查界面，列出仍是英文的字符串 |
+| `ckit dict` | 词典统计与本地覆盖文件路径 |
+| `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off` |
 
-## 改措辞 / 补词条
+## 功能
 
-编辑 `dictionaries/zh-CN.json`：
+`ckit features` 看实时列表。
 
-```json
-{
-  "entries":  { "Save": "保存" },
-  "prefixes": [ { "from": "Model: ", "to": "模型：" } ],
-  "rules":    [ { "pattern": "^Thought for (\\d+)s$", "out": "思考了 $1 秒" } ]
-}
-```
-
-匹配**只按整串精确匹配**（不做子串替换），因此不会误伤模型名和代码。规则先于前缀执行，`$1..$9`
-取自捕获组。正则必须以 `^…$` 锚定，校验不过的远端词典会被直接拒绝。
-
-想让自己的改法在工具升级后仍然保留，写到 `%APPDATA%\cline-zh\zh-CN.local.json`，本地覆盖优先级最高。
-
-注入器每 4 秒重读一次词典，改完不用重启 Cline。
+* **`sidebar-groups`**（默认开启）——上面说的常驻项目分组。它自己判断什么算项目：某个登记路径如果
+  包含着其他登记路径，或者位于应用安装目录内，就当作容器不显示，因此**不需要按机器配置**。
+  如果你亲手点了 Cline 的排序按钮，本会话内就以你的选择为准不再干预；否则增强层会持续保持分组模式。
+  设计说明见 [`docs/features.zh-CN.md`](docs/features.zh-CN.md)。
+* **语言包**（`dictionaries/<locale>.json`）——只做**整串精确匹配**替换，因此不会误伤模型名、服务商名、
+  工具标识和代码。zh-CN 语料为 476 条词条 + 30 条规则，来源是「界面走查 + 从应用自身源码提取」两路合并，
+  见 [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md)。
 
 ## 已知限制
 
-* **仅 Windows。** 注入依赖 WebView2 的环境变量；macOS/Linux 用的是 WKWebView / WebKitGTK，需要另一套机制。
-* **模型简介仍是英文。** 每个模型下面那句 "Leading open-weights model" 来自云端目录，成千上万条自由文本，
-  固定词典无法穷举。
-* **专有名词故意不翻**：Cline、ClinePass、Codex、MCP、服务商与模型名、`read_files` 这类工具标识、
-  文件夹名与示例值。
-* **Cline 更新后可能失效。** 界面文案一改，覆盖层只会保持英文。跑 `cline-zh audit` 把结果发到 issue
-  或直接提 PR。
-* 直接双击 `cline-app.exe`（或用没被改写的快捷方式）打开，界面还是英文——因为没有可注入的调试端口。
+* **仅 Windows。** 注入依赖 WebView2 的环境变量；macOS/Linux 用 WKWebView / WebKitGTK，需要另一套机制。
+* **必须经由增强层启动。** 直接双击 `cline-app.exe`（或用没被改写的快捷方式）没有可注入的调试端口，
+  得到的是原版界面。
+* **Cline 升级可能失效。** 文案改了，语言包会留英文；侧边栏结构改了，`sidebar-groups` 需要跟进。
+  跑一次 `ckit audit` 并开 issue。
+* **模型下方的一句英文简介不覆盖**——来自云端目录的自由文本，条数随服务商变化。
+* 专有名词一律不翻：Cline、服务商与模型名、工具标识、路径。
 
 ## 安全说明
 
-`cline-zh start` 会在 Cline 运行期间于 `127.0.0.1` 开一个 DevTools 端口，本机任意进程都能通过它操作
-Cline 界面。端口每次启动随机、只绑定回环地址，也不会写成系统级环境变量。详见 [SECURITY.md](SECURITY.md)。
+`ckit start` 会在 Cline 运行期间于 `127.0.0.1` 开一个 DevTools 端口，本机以你身份运行的任意进程都能
+通过它操作 Cline 界面。端口每次启动随机、只绑定回环地址、不写成系统级环境变量。远端词典会做校验
+（结构、规模、正则必须锚定），不合规直接拒绝。详见 [SECURITY.md](SECURITY.md)。
 
 ## 卸载
 
 ```bash
-cline-zh uninstall               # 还原原始快捷方式并结束注入器
-del /q "%APPDATA%\cline-zh"      # 可选：删除配置、缓存与日志
-npm uninstall -g cline-zh-overlay
+ckit uninstall                 # 还原原始快捷方式并结束注入器
+del /q "%APPDATA%\cline-kit"   # 可选：删除配置、缓存与日志
+npm uninstall -g cline-kit
 ```
-
-## 参与
-
-真正有价值的是词典。日常用一段时间后跑 `cline-zh audit`，把缺的补进 `dictionaries/zh-CN.json`，
-把 `version` 加一，提 PR。
-
-另外官方已有进行中的多语言讨论——见 [`docs/upstream-i18n.md`](docs/upstream-i18n.md)，里面记录了现有
-议题（[#12518](https://github.com/cline/cline/issues/12518)、[#13811](https://github.com/cline/cline/pull/13811)）、
-我们提交的发言与更正、同类社区工具调研，以及把 #13811 的 `@cline/i18n` 移植进
-`apps/examples/desktop-app` 的计划。官方一旦支持，本工具的翻译层就该退休，那是更好的结果。
 
 ## 与同类项目的关系
 
-**[cline-chinese](https://github.com/HybridTalentComputing/cline-chinese)**（Apache-2.0，约 660 star）是
-**VS Code 插件的汉化分叉**，解决的是另一个界面上的问题：它翻译的是 IDE 扩展，而且因为是分叉，只能按自己的
-节奏跟进上游（最新 release 仍是 `v3.46.9`，落后于当前上游），需要单独安装一个扩展；其中没有桌面版代码。
+[`JACK5920/cline-desktop-zh`](https://github.com/JACK5920/cline-desktop-zh) 和
+[`ExSchwi/cline-desktop-zh-cn`](https://github.com/ExSchwi/cline-desktop-zh-cn) 把**语言**这一半做得不错，
+只想要中文界面的话用它们就够了；[`cline-chinese`](https://github.com/HybridTalentComputing/cline-chinese)
+是 **VS Code 插件**的分叉，属于另一个界面。本项目与它们的交集只在语言包上——存在理由是侧边栏/项目行为，
+加上工程化部分（可逆安装、路径自动探测、随机端口、插件开关、`ckit audit`）。思路致谢记录在 [NOTICE](NOTICE)。
 
-本项目覆盖的是**桌面版**，不 fork 任何东西，只要界面文案不改就能跟着 Cline 自动更新继续生效——但它是运行时
-覆盖层，因此带有上面那些限制，在官方语言包出现之前只是过渡方案。
+更好的长期结果是官方支持：一个语言设置，以及一个列出全部已登记项目的侧边栏。我们已在
+[#12518](https://github.com/cline/cline/issues/12518) 与 [#13811](https://github.com/cline/cline/pull/13811)
+发言，脉络见 [`docs/upstream-i18n.md`](docs/upstream-i18n.md)。
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。本项目与 Cline 无隶属关系，也未获其背书。
-
-[NOTICE](NOTICE) 记录了来源边界：词典的英文键是 Cline 桌面版自身的界面文案（从运行中的程序读取，
-并对照 Apache-2.0 许可的 `cline/cline` 仓库中 `apps/examples/desktop-app` 提取），中文值是本项目原创
-翻译；仓库不打包任何上游代码或图标资源；同方向两个社区项目对**设计思路**的影响也在其中致谢。
+MIT，见 [LICENSE](LICENSE)。[NOTICE](NOTICE) 记录来源边界：非官方项目、不打包任何上游代码或图标资源、
+语言包的英文键取自 Apache-2.0 的 [`cline/cline`](https://github.com/cline/cline) 仓库中
+`apps/examples/desktop-app`（即应用自身界面文案），译文为原创。与 Cline 无隶属关系，也未获其背书。

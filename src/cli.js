@@ -1,37 +1,47 @@
 #!/usr/bin/env node
 "use strict";
-// cline-zh - Simplified Chinese UI overlay for the Cline desktop app.
+// cline-kit - desktop enhancement kit for the Cline desktop app.
+// Flagship feature: keep every registered project visible in the sidebar.
+// Optional: UI locale packs (zh-CN today; zh-TW / ja / ko / vi follow the same data format).
 const cfg = require("./config");
 
 function guard() {
   if (typeof WebSocket !== "function") {
-    console.error("cline-zh needs Node.js 20.10+ (global WebSocket). Current: " + process.version);
+    console.error("cline-kit needs Node.js 20.10+ (global WebSocket). Current: " + process.version);
     console.error("Install a newer Node from https://nodejs.org and retry.");
     process.exit(1);
   }
 }
 
-const HELP = `cline-zh - Cline 桌面版中文界面覆盖层 (Windows)
+const HELP = `cline-kit (ckit) - Cline 桌面版增强助手 (Windows)
 
-用法: cline-zh <命令> [选项]
+用法: ckit <命令> [选项]
 
-  start            启动 Cline 并挂上中文界面（推荐日常入口）
+  start            以增强层启动 Cline（--restart 先退出正在运行的实例）
   stop             结束后台注入器（Cline 本身不受影响）
-  status           显示探测到的 Cline 路径、调试端口、注入器与词典状态
-  install          把开始菜单/桌面的 Cline 快捷方式改为中文启动（可还原）
+  status           显示 Cline 路径、调试端口、注入器与已装载内容版本
+  install          把开始菜单/桌面的 Cline 快捷方式改为增强层启动（可还原）
   uninstall        还原快捷方式
-  update           从 GitHub 拉取最新词典（离线时自动跳过）
-  audit            走查界面，列出仍未翻译的字符串（用于补词典/报 issue）
-  features         列出功能插件（feature）及其开关状态
-  feature          开关某个插件：cline-zh feature enable|disable <id>
-  dict             显示当前词典统计
-  config           查看或修改配置：--cline-path=... --port=... --auto-update=on|off
+  features         列出功能插件及开关状态
+  feature          开关插件：ckit feature enable|disable <id>
+  update           从 GitHub 拉取最新语言词典（离线时自动跳过）
+  audit            走查界面，列出仍未翻译的字符串（补词典 / 报 issue 用）
+  dict             词典统计与本地覆盖文件路径
+  config           查看或设置：--cline-path=... --port=... --auto-update=on|off
+
+主要功能
+  sidebar-groups   让侧边栏「项目分组」常驻显示所有已登记项目。Cline 原生只列出
+                   已经有会话的文件夹，空项目全部隐藏。
+
+可选功能
+  locale zh-CN     界面简体中文（词典 476 条 + 规则；zh-TW / ja / ko / vi 同格式待补）
 
 示例:
-  cline-zh start
-  cline-zh install
-  cline-zh update --force
-  cline-zh config --cline-path "D:\\Programs\\Cline\\cline-app.exe"
+  ckit start
+  ckit install
+  ckit features
+  ckit feature disable sidebar-groups
+  ckit config --cline-path "D:\\Programs\\Cline\\cline-app.exe"
 `;
 
 function parseFlags(argv) {
@@ -55,14 +65,14 @@ async function main() {
   if (cmd === "start") {
     const out = await require("./launcher").start({ restart: !!flags.restart });
     if (out.needsRestart) {
-      console.log("Cline 已在运行，但没有调试端口，无法注入。");
-      console.log("请用 `cline-zh start --restart` 重启 Cline，或先手动退出 Cline 再运行 cline-zh start。");
+      console.log("Cline 已在运行但没有调试端口，增强层无法挂载。");
+      console.log("请用 `ckit start --restart` 重启 Cline，或先手动退出 Cline 再运行 ckit start。");
       process.exitCode = 1;
       return;
     }
     console.log(out.debugPortAlive
-      ? `Cline 已启动（端口 ${out.port}，来源 ${out.source}），中文界面注入中。`
-      : `警告：Cline 已启动但调试端口 ${out.port} 未响应，界面可能仍是英文。`);
+      ? `Cline 已启动（端口 ${out.port}，来源 ${out.source}），增强层已装载。`
+      : `警告：Cline 已启动但调试端口 ${out.port} 未响应，增强层可能未装载。`);
     if (!out.debugPortAlive) process.exitCode = 1;
     return;
   }
@@ -95,7 +105,7 @@ async function main() {
     console.log("已改为中文启动的快捷方式：");
     r.shortcuts.forEach((s) => console.log("  " + s));
     console.log("启动器：" + r.launcher);
-    console.log("以后从这些快捷方式打开 Cline 即为中文；`cline-zh uninstall` 可还原。");
+    console.log("以后从这些快捷方式打开 Cline 即带增强层；`ckit uninstall` 可还原。");
     return;
   }
 
@@ -114,7 +124,7 @@ async function main() {
   }
 
   if (cmd === "audit") {
-    if (!conf.port) { console.error("Cline 未通过 cline-zh 启动，先运行 cline-zh start"); process.exit(1); }
+    if (!conf.port) { console.error("Cline 未通过 cline-kit 启动，先运行 ckit start"); process.exit(1); }
     const r = await require("./audit").run(conf.port);
     console.log(`未翻译字符串 ${r.total} 条，明细：${r.file}`);
     r.items.slice(0, Number(flags.limit) || 80).forEach(([s, where]) => console.log("  " + s + "   [" + where + "]"));
@@ -131,7 +141,7 @@ async function main() {
       for (const f of features.list()) {
         console.log(`${enabled[f.id] ? "on " : "off"}  ${f.id}  (v${f.version})  ${f.title}`);
       }
-      console.log("\n切换：cline-zh feature enable <id> | cline-zh feature disable <id>");
+      console.log("\n切换：ckit feature enable <id> | ckit feature disable <id>");
       return;
     }
     const [action, id] = argv.slice(1).filter((a) => !a.startsWith("--"));
@@ -142,7 +152,7 @@ async function main() {
       return;
     }
     if (action !== "enable" && action !== "disable") {
-      console.error("用法：cline-zh feature <enable|disable> <id>");
+      console.error("用法：ckit feature <enable|disable> <id>");
       process.exitCode = 1;
       return;
     }
@@ -172,4 +182,4 @@ async function main() {
   console.log(HELP);
 }
 
-main().catch((e) => { console.error("cline-zh: " + e.message); process.exit(1); });
+main().catch((e) => { console.error("cline-kit: " + e.message); process.exit(1); });

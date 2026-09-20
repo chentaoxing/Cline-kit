@@ -8,9 +8,29 @@ All notable changes to this project are documented here. The format follows
 
 First public release.
 
+### Repositioned
+
+Renamed from `cline-zh-overlay` to **`cline-kit`**: the sidebar/project behaviour is the product, and
+localisation is an optional layer riding the same injection channel. The CLI is now `ckit` (long alias
+`cline-kit`). Runtime state moved to `%APPDATA%cline-kit` with a one-time migration of config, cache and
+logs from the old `cline-zh` directory. Browser globals and DOM markers were renamed to match
+(`__clineKitFeature*`, `data-ckit-feat`, `__ckitEngineBuild`); launcher files became
+`launch-cline-kit.{ps1,vbs}`. Existing installs recover by re-running `ckit install`, which repoints the
+shortcut at the new launcher.
+
+### Changed
+
+- `sidebar-groups` no longer enables project grouping once per page load. It keeps grouping on, but
+  yields for the rest of the session as soon as the user clicks Cline's own sort control, with a 6 s
+  cooldown so a mode-detection mismatch cannot turn into a click loop.
+- the injector no longer uses `src/` as its working directory; that locked the checkout and made
+  renaming or replacing files fail with 'device or resource busy' while it was alive.
+- package description, keywords and README rewritten around the sidebar feature, with a before/after
+  table; SECURITY, NOTICE, docs and the release checklist synced to the new name.
+
 ### Added
 
-- `cline-zh` CLI: `start`, `stop`, `status`, `install`, `uninstall`, `update`, `audit`, `dict`, `config`.
+- `ckit` CLI: `start`, `stop`, `status`, `install`, `uninstall`, `update`, `audit`, `dict`, `config`.
 - Overlay engine (`src/engine.js`): whole-string text-node replacement plus `placeholder`, `aria-label`
   and `title` attribute translation, driven by a `MutationObserver` with a 1.2 s rescan for portals.
 - Declarative zh-CN dictionary (`dictionaries/zh-CN.json`): 343 entries, 6 prefix rules, 24 regex rules
@@ -22,8 +42,8 @@ First public release.
   original target so `uninstall` restores it exactly.
 - Optional dictionary updates from a configurable raw GitHub URL, with strict validation and offline
   fallback; `--auto-update=off` disables all network access.
-- Local override file (`%APPDATA%\cline-zh\zh-CN.local.json`) that wins over bundled and cached data.
-- `cline-zh audit`: walks every screen over CDP, filters out hidden-but-mounted panels by hit-testing each
+- Local override file (`%APPDATA%\cline-kit\zh-CN.local.json`) that wins over bundled and cached data.
+- `ckit audit`: walks every screen over CDP, filters out hidden-but-mounted panels by hit-testing each
   node, and reports only strings the dictionary does not cover.
 
 ### Known limitations

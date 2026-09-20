@@ -1,6 +1,6 @@
 "use strict";
 // Resident keep-alive: keeps the overlay installed in every Cline webview page.
-// Re-reads the dictionary each cycle, so `cline-zh update` takes effect without a restart.
+// Re-reads the dictionary each cycle, so `ckit update` takes effect without a restart.
 const fs = require("fs");
 const path = require("path");
 const { execFileSync } = require("child_process");
@@ -53,7 +53,7 @@ async function installOnce(port, source, version) {
 }
 
 // The injector is a long-lived process, so editing src/*.js does not affect a running one.
-// It records the payload version it actually installed; `cline-zh start` compares that with the
+// It records the payload version it actually installed; ckit start compares that with the
 // current version and restarts a stale injector (otherwise `git pull` appears to do nothing).
 function activeVersionFile() { return path.join(cfg.cacheDir(), "active-version"); }
 
@@ -70,7 +70,7 @@ async function main() {
   const boot = cfg.read();
   const port = boot.port;
   if (!port) {
-    console.error("[cline-zh] injector: no port in config; start via `cline-zh start`");
+    console.error("[cline-kit] injector: no port in config; start via `ckit start`");
     process.exit(2);
   }
   let gone = 0;
@@ -84,7 +84,7 @@ async function main() {
       gone = 0;
     } catch (e) {
       if (!clineRunning() && ++gone > 3) {
-        console.log("[cline-zh] cline is gone; injector exiting");
+        console.log("[cline-kit] cline is gone; injector exiting");
         return;
       }
     }
