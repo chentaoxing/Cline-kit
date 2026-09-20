@@ -70,7 +70,15 @@ jobs:
           # Release builds must not resolve a stale cached dependency tree.
           package-manager-cache: false
 
-      # npm picks up the OIDC identity from the runner (id-token: write) because this package has a
-      # trusted publisher registered for chentaoxing / Cline-kit / release.yml. No credential here.
+      # setup-node writes `_authToken=${NODE_AUTH_TOKEN}` even when no token is configured, and npm
+      # then authenticates with that placeholder instead of OIDC (registry answers 404). Replace the
+      # generated userconfig with one that carries no auth line so npm uses the runner's ID token.
+      - name: Use a token-free npm config so publishing goes through OIDC
+        run: |
+          printf 'registry=https://registry.npmjs.org/\nprovenance=true\n' > "$RUNNER_TEMP/npmrc"
+          echo "NPM_CONFIG_USERCONFIG=$RUNNER_TEMP/npmrc" >> "$GITHUB_ENV"
+
+      # npm takes the OIDC identity from the runner because this package has a trusted publisher
+      # registered for chentaoxing / Cline-kit / release.yml. No credential exists in this repo.
       - name: Publish to npm via OIDC trusted publishing
         run: npm publish --provenance --access public
