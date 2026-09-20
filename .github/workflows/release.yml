@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*"
+  # so a maintainer can re-run the packaging without moving a tag
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to name the artifact (e.g. v0.1.0)"
+        required: true
+        default: "v0.1.0"
 
 permissions:
   contents: write
@@ -29,7 +36,8 @@ jobs:
       - name: Build a portable zip (no install required for end users)
         shell: pwsh
         run: |
-          $out = "cline-kit-${{ github.ref_name }}-win"
+          $ref = "${{ github.event.inputs.version || github.ref_name }}"
+          $out = "cline-kit-$ref-win"
           New-Item -ItemType Directory -Path "$out/src", "$out/dictionaries" -Force | Out-Null
           Copy-Item -Recurse -Force src/* "$out/src"
           Copy-Item -Recurse -Force dictionaries/* "$out/dictionaries"
@@ -43,17 +51,26 @@ jobs:
           files: cline-kit-*.zip
           generate_release_notes: true
 
-  # Publish to npm only when an NPM_TOKEN secret exists.
   publish:
     needs: package
     runs-on: ubuntu-latest
-    if: ${{ secrets.NPM_TOKEN != '' }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
-      - run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to npm (skipped until NPM_TOKEN is set)
+        if: ${{ env.NODE_AUTH_TOKEN != '' }}
+        run: npm publish --provenance --access public
+
+      - name: npm publish skipped
+        if: ${{ env.NODE_AUTH_TOKEN == '' }}
+        run: echo "No NPM_TOKEN secret; add it under Settings -> Secrets and variables -> Actions to publish."
