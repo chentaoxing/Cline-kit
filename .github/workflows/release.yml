@@ -1,0 +1,59 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Smoke test the CLI
+        run: |
+          node scripts/selftest.js
+          node --check src/cli.js
+          node --check src/engine.js
+          node src/cli.js status
+          node -e "const d=require('./dictionaries/zh-CN.json'); if(!d.entries||Object.keys(d.entries).length<100) throw new Error('dictionary looks truncated')"
+
+      - name: Build a portable zip (no install required for end users)
+        shell: pwsh
+        run: |
+          $out = "cline-kit-${{ github.ref_name }}-win"
+          New-Item -ItemType Directory -Path "$out/src", "$out/dictionaries" -Force | Out-Null
+          Copy-Item -Recurse -Force src/* "$out/src"
+          Copy-Item -Recurse -Force dictionaries/* "$out/dictionaries"
+          Copy-Item -Force package.json, ckit.cmd, README.md, README.zh-CN.md, LICENSE, NOTICE, SECURITY.md, CHANGELOG.md $out
+          # Compress-Archive writes backslash entry names on Windows, which extract as one oddly
+          # named file outside Explorer; ship through our own writer instead.
+          node scripts/make-zip.js $out "$out.zip"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: cline-kit-*.zip
+          generate_release_notes: true
+
+  # Publish to npm only when an NPM_TOKEN secret exists.
+  publish:
+    needs: package
+    runs-on: ubuntu-latest
+    if: ${{ secrets.NPM_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
