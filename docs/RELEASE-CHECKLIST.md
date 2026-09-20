@@ -37,7 +37,14 @@ git tag v0.1.0 && git push origin v0.1.0     # 触发 .github/workflows/release.
 ```
 
 workflow 会跑 `npm test` + CLI 冒烟，产出 `cline-kit-vX.Y.Z-win.zip` 挂到 Release。
-npm 发布需要仓库 Secrets 里的 `NPM_TOKEN`；没有这个 secret 时 publish job 自动跳过（设计上如此）。
+npm 发布走 **Trusted Publishing（OIDC）**，仓库里不放长期 token：npm 从 2026-08 起限制绕过 2FA 的 token，
+2027-01 起进一步限制直接用 token 发布，所以别把 `NPM_TOKEN` 当成长期方案。
+工作流里 `id-token: write` 已就位，`package.json` 的 `publishConfig.registry` 钉死官方 registry
+（这台机器的 `.npmrc` 指向 npmmirror，不钉会误推到镜像）；包名 `cline-kit` 实测在 npm 上空闲。
+
+一次性 bootstrap：本地 `npm login`（web 授权，不在仓库留凭据）发出第一个版本，然后在 npmjs.com 的
+包设置里把 GitHub Actions 的 trusted publisher 指向 `chentaoxing` / `Cline-kit` / `release.yml`。
+之后每个版本由 CI 用短时 OIDC 签发，仓库永远没有 npm secret。在那之前 publish job 自动跳过并留一条 notice。
 发布后跑一次 `ckit update --force`，远端词典能拉到才算通。注意本机
 `%APPDATA%\cline-kit\config.json` 里的 `updateUrl` 不会被新的默认值覆盖，改地址时要一并
 `ckit config --update-url=...`。
