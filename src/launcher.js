@@ -92,10 +92,22 @@ async function start(opts) {
       await new Promise((r) => setTimeout(r, 500));
     }
   }
-  if (!injectorRunning()) {
-    spawnHidden(process.execPath, [path.join(__dirname, "injector.js")], { cwd: __dirname });
+  // Restart the injector when it is missing *or* when it is running stale code (e.g. after a
+  // git pull), otherwise the update silently appears to do nothing.
+  const injectorPath = path.join(__dirname, "injector.js");
+  let stale = false;
+  try {
+    const running = injectorRunning();
+    if (running) {
+      const current = require("./payload").compose(cfg.read()).version;
+      stale = require("./injector").readActiveVersion() !== current;
+    }
+  } catch (e) { stale = false; }
+  if (stale) stop();
+  if (!injectorRunning() || stale) {
+    spawnHidden(process.execPath, [injectorPath], { cwd: __dirname });
   }
-  return { exe: found.path, source: found.source, port, debugPortAlive: alive };
+  return { exe: found.path, source: found.source, port, debugPortAlive: alive, restartedInjector: stale };
 }
 
 function stop() {

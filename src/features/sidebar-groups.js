@@ -6,14 +6,16 @@
 // Runs inside the webview. Config arrives as window.__clineZhFeature["sidebar-groups"].
 (function () {
   var ID = "sidebar-groups";
-  var VER = 4;
+  var VER = 4;                       // human-readable; hot-swap keys off CFG.__build instead
+  var CFG = (window.__clineZhFeature && window.__clineZhFeature[ID]) || {};
   var st = window.__clineZhFeatureState = window.__clineZhFeatureState || {};
-  if (st[ID] === VER) return;
+  var BUILD = String(CFG.__build || "v" + VER);
+  if (st[ID + "_build"] === BUILD) return;
   if (st[ID + "_observer"]) { try { st[ID + "_observer"].disconnect(); } catch (e) { } }
   if (st[ID + "_timer"]) clearInterval(st[ID + "_timer"]);
+  st[ID + "_build"] = BUILD;
   st[ID] = VER;
 
-  var CFG = (window.__clineZhFeature && window.__clineZhFeature[ID]) || {};
   var KEY = "cline.code.workspace-selection.v2";
   var INSTALL = (CFG.installDir || "").replace(/[\\/]+$/, "").toLowerCase();
   var HIDE = (CFG.hide || []).map(function (p) { return String(p).replace(/[\\/]+$/, "").toLowerCase(); });

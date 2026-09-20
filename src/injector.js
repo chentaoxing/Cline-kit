@@ -52,6 +52,20 @@ async function installOnce(port, source, version) {
   return results;
 }
 
+// The injector is a long-lived process, so editing src/*.js does not affect a running one.
+// It records the payload version it actually installed; `cline-zh start` compares that with the
+// current version and restarts a stale injector (otherwise `git pull` appears to do nothing).
+function activeVersionFile() { return path.join(cfg.cacheDir(), "active-version"); }
+
+function readActiveVersion() {
+  try { return fs.readFileSync(activeVersionFile(), "utf8").trim(); } catch (e) { return ""; }
+}
+
+function writeActiveVersion(v) {
+  if (readActiveVersion() === v) return;
+  try { cfg.ensureDirs(); fs.writeFileSync(activeVersionFile(), v); } catch (e) { /* best effort */ }
+}
+
 async function main() {
   const boot = cfg.read();
   const port = boot.port;
@@ -66,6 +80,7 @@ async function main() {
       const conf = cfg.read();
       const composed = payload.compose(conf);
       await installOnce(conf.port || port, composed.source, composed.version);
+      writeActiveVersion(composed.version);
       gone = 0;
     } catch (e) {
       if (!clineRunning() && ++gone > 3) {
@@ -78,4 +93,4 @@ async function main() {
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
-module.exports = { installOnce };
+module.exports = { installOnce, readActiveVersion, activeVersionFile };
