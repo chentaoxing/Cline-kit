@@ -82,7 +82,7 @@ ckit start                  # 立刻带增强功能启动 Cline
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .        # 或直接用：node src/cli.js <命令>
-npm test                # 29 项无依赖自检
+npm test                # 30 项无依赖自检
 ```
 
 装完统一确认一次：
@@ -118,7 +118,7 @@ ckit locales            # 可选：看有哪些语言、换语言
 ### 选择语言
 
 **在软件里**：点开 Cline 侧边栏底部的齿轮进「设置」，用**界面语言**那一行。它排在「深色模式」下面，
-样式和邻居一致，点完约 4 秒生效——不用重启，选择会记住。列表里的 `English` 表示不替换任何文案。
+样式和邻居一致，**点下去当场就变**——不用重启，选择会记住。五份词典一起装在覆盖层里，所以点击不依赖任何后台进程是否活着。
 
 **在终端里**（改的是同一个设置）：
 
@@ -131,7 +131,7 @@ ckit locales none     # 不再替换 Cline 自己的文案
 `ckit install` 每次都会打印当前语言和这条命令，第一次 `ckit start` 成功后也会提示一次。
 `ckit config --dictionary=<语言>` 是等价的底层写法。选定非默认语言后，`ckit update` 热更新的就是那一份。
 
-如果点了十几秒没反应，那一行会变红并直接说明原因：换语言是后台注入器在做的事，只有 Cline 是**经本工具启动**的（它改写的快捷方式、`ckit start`、或便携包的 `install.cmd`）才有效。直接双击 `cline-app.exe` 会看到那一行，但背后没人执行。
+后台服务只负责"记住"这个选择。它没在跑（比如你是直接双击 `cline-app.exe` 打开的，而不是走本工具改写的快捷方式）时，当前窗口照样切换，只是那一行会提醒你重启后不会保留。
 
 这一行是本工具加进去的，Cline 原生没有语言设置；不想要就 `ckit feature disable language-picker`。
 

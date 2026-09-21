@@ -91,7 +91,7 @@ carry an 84 MB runtime. Unzip and run `ckit.cmd install` from that folder.
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .            # or call it directly: node src/cli.js <command>
-npm test                    # 29 checks, no dependencies
+npm test                    # 30 checks, no dependencies
 ```
 
 Then in every case:
@@ -128,8 +128,9 @@ then gives you the enhanced sidebar. If you would rather keep your own launcher,
 ### Choosing a language
 
 **In the app:** open Cline's Settings (the gear at the bottom of the sidebar) and use the **Interface
-language** row. It sits under Dark mode, looks like its neighbours, and takes effect in about four
-seconds — no restart, and the choice is remembered. `English` there means "change nothing".
+language** row. It sits under Dark mode, looks like its neighbours, and **takes effect the moment you click** -
+no restart, and the choice is remembered. Every language ships inside the overlay itself, so the
+click does not depend on a background process being alive. `English` there means "change nothing".
 
 **From the terminal**, which is the same setting:
 
@@ -143,10 +144,9 @@ ckit locales none     # stop replacing Cline's own text
 `ckit config --dictionary=<code>` is the equivalent low-level write. Once a non-default locale is
 selected, `ckit update` hot-updates *that* dictionary.
 
-If clicking does nothing for more than a few seconds, the row turns red and says why: applying a
-language is the kit's background injector, so it only works when Cline was started through the kit (a
-shortcut it installed, `ckit start`, or the portable package's `install.cmd`). Opening
-`cline-app.exe` directly shows the row with nothing behind it.
+The background service is only needed to *remember* the choice across restarts. If it is not running -
+Cline opened straight from `cline-app.exe` rather than through the shortcut the kit installed - the
+switch still works in that window and the row says the choice will not persist.
 
 The row is added by this kit — Cline has no language setting of its own. Turn it off with
 `ckit feature disable language-picker`.

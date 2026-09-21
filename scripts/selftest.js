@@ -409,6 +409,30 @@ test("the bundled Node pin is internally consistent and satisfies our engines ra
     `bundled Node ${pin.version} is older than engines.node ${want}`);
 });
 
+
+test("the payload carries every locale, so switching needs no background service", () => {
+  const conf = { dictionary: "zh-CN", features: {} };
+  const composed = payload.compose(conf);
+  const d = composed.dict;
+  assert.ok(Array.isArray(d.keys) && d.keys.length > 400, "keys must ship once, columnar");
+  assert.ok(d.locales, "payload lost the embedded locale set");
+  for (const code of dict.available()) {
+    if (code === d.language) continue;
+    const col = d.locales[code];
+    assert.ok(col, code + " is no longer embedded");
+    assert.strictEqual(col.entries.length, d.keys.length, code + " values do not align to the key list");
+    const other = dict.load(Object.assign({}, conf, { dictionary: code }));
+    const sample = Object.keys(other.entries).slice(0, 25);
+    for (const k of sample) {
+      assert.strictEqual(col.entries[d.keys.indexOf(k)], other.entries[k],
+        code + " value for " + JSON.stringify(k) + " is misaligned or wrong");
+    }
+  }
+  assert.ok(d.locales.none, "'none' must be selectable from inside the page too");
+  assert.strictEqual(d.locales.none.entries.length, 0);
+  assert.ok(composed.pageBuild, "the injector needs pageBuild to avoid re-sending 110 KB");
+});
+
 console.log("");
 if (failures.length) {
   console.log(failures.length + " of " + (passed + failures.length) + " checks FAILED");

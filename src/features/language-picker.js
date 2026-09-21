@@ -96,10 +96,21 @@
     try { return localStorage.getItem(PENDING); } catch (e) { return null; }
   }
 
-  // A click cannot apply itself: the resident injector has to consume the request. When it is not
-  // running - Cline opened directly, or via `ckit attach`, which injects once and stays out of the
-  // way - the row would otherwise look broken with no explanation. So if the request is still
-  // sitting there after two injector cycles, say so in the row.
+  // A click applies immediately, inside the page: every locale travels in the payload, so the
+  // language row does not depend on a Node process being alive. The pending key is only how the
+  // choice gets written back to the config for the *next* launch.
+  function choose(code) {
+    var applied = false;
+    try { applied = !!(window.__ckitSetLocale && window.__ckitSetLocale(code)); } catch (e) { applied = false; }
+    if (applied) CURRENT = code;
+    try { localStorage.setItem(PENDING, code); } catch (e) { /* nothing to persist to */ }
+    if (!applied) armStallWatch(code);
+    render();
+  }
+
+  // Only reachable when the payload carried a single locale (an older injector) or the code was not
+  // shipped: then the click really is a request, and a request nobody takes must not look like
+  // success.
   var stalled = false;
   var stallTimer = null;
   function armStallWatch(code) {
@@ -111,12 +122,6 @@
     }, 12000);
   }
 
-  function choose(code) {
-    try { localStorage.setItem(PENDING, code); } catch (e) { return; }
-    armStallWatch(code);
-    render();                              // show "switching" immediately, the injector applies it
-  }
-
   function buildRow() {
     var row = el("div", ROW_CLS);
     row.setAttribute("data-ckit-lang", String(VER));
@@ -125,13 +130,19 @@
     left.appendChild(el("p", TITLE_CLS, t("title", "Interface language")));
     var p = pendingCode();
     var waiting = p && p !== CURRENT;
-    if (!waiting && stalled) stalled = false;         // the injector took the request
+    if (!waiting && stalled) stalled = false;         // somebody took the request
     var stuck = waiting && stalled;
-    left.appendChild(el("p", HINT_CLS, stuck ? t("stalled",
+    // The page already switched; the key is still there means the config has not caught up, so the
+    // choice will not survive a restart. Say it quietly rather than alarmingly.
+    var unsaved = !!(p && p === CURRENT);
+    var msg = stuck ? t("stalled",
       "Nothing is applying the change - start the kit with `ckit start`, then click again.")
-      : (waiting ? t("switching", "Switching...")
-        : t("hint", "Added by cline-kit. Applies in a few seconds, no restart."))));
+      : waiting ? t("switching", "Switching...")
+      : unsaved ? t("unsaved", "Applied now; it will not persist until the kit's background service is running.")
+      : t("hint", "Added by cline-kit. Applies in a few seconds, no restart.");
+    left.appendChild(el("p", HINT_CLS, msg));
     if (stuck) left.lastChild.style.color = "var(--destructive, #d13438)";
+    else if (unsaved) left.lastChild.style.color = "var(--warning, #b58900)";
     row.appendChild(left);
 
     var group = el("div", GROUP_CLS);

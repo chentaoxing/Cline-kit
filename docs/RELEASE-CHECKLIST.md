@@ -5,7 +5,7 @@
 ## 1. 本地体检（硬门槛）
 
 ```bash
-npm test                              # 29 项无依赖自检，必须全绿
+npm test                              # 30 项无依赖自检，必须全绿
 node scripts/locale-switch-check.js    # 需 Cline 正由本工具启动：五份词典逐个真机验证
 node scripts/cli-locale-switch-check.js ja   # 用户那条指令（ckit locales）是否真的改变了窗口
 node src/cli.js doctor                 # 全绿；任何 FAIL 都表示装进窗口的东西和源码不一致

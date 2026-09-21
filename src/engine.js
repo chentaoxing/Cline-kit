@@ -1,24 +1,73 @@
 /* cline-kit overlay engine (browser side).
  * Runs inside the Cline webview. Expects a `DICT` const in scope:
- *   { version, entries: {en: zh}, prefixes: [{from,to}], rules: [{pattern,out}] }
+ *   { version, language, entries: {en: text}, prefixes: [{from,to}], rules: [{pattern,out}],
+ *     keys: [en...], locales: { code: { version, entries:[...aligned to keys], rules, prefixes } } }
+ * `locales` is optional; without it this behaves exactly as the single-dictionary engine.
  * No dependencies, no network, no eval of remote code beyond this data.
  */
 (function () {
   var VER = (DICT && DICT.version) || 1;
+  var BASE = String((DICT && DICT.engineBuild) || "v" + VER);
+  var LANG = (DICT && DICT.language) || "none";
   // Guard on the engine build *and* the dictionary version. Engine-only edits must re-run, and so
   // must a locale switch or `ckit update`: those change DICT while this file stays byte-identical.
-  var BUILD = String((DICT && DICT.engineBuild) || "v" + VER) + "/d" + VER + "/" + (DICT && DICT.language);
+  var BUILD = BASE + "/d" + VER + "/" + LANG;
   if (window.__ckitEngineBuild === BUILD) return;
   if (window.__ckitObserver) { try { window.__ckitObserver.disconnect(); } catch (e) { } }
   if (window.__ckitTimer) { clearInterval(window.__ckitTimer); }
   window.__ckitEngineBuild = BUILD;
   window.__ckitEngineVersion = VER;
 
-  var ENTRIES = DICT.entries || {};
-  var PREFIXES = DICT.prefixes || [];
-  var RULES = (DICT.rules || []).map(function (r) {
-    try { return { re: new RegExp(r.pattern), out: r.out }; } catch (e) { return null; }
-  }).filter(Boolean);
+  // Every bundled locale is compiled once, on demand, and kept in a table. Compiling all five up
+  // front would build ~120 regexes nobody asked for yet; compiling none is what made the language
+  // row depend on a Node process being alive.
+  var TABLES = {};
+  function tableFor(code) {
+    if (TABLES[code]) return TABLES[code];
+    var src = null;
+    if (code === LANG) {
+      src = { entries: DICT.entries || {}, rules: DICT.rules || [], prefixes: DICT.prefixes || [] };
+    } else if (DICT.locales && DICT.keys && DICT.locales[code]) {
+      var col = DICT.locales[code], entries = {};
+      var values = col.entries || [];
+      for (var i = 0; i < DICT.keys.length && i < values.length; i++) {
+        if (values[i]) entries[DICT.keys[i]] = values[i];
+      }
+      src = { entries: entries, rules: col.rules || [], prefixes: col.prefixes || [] };
+    }
+    if (!src) return null;
+    var rules = [];
+    for (var r = 0; r < src.rules.length; r++) {
+      try { rules.push({ re: new RegExp(src.rules[r].pattern), out: src.rules[r].out }); }
+      catch (e) { /* one bad rule must not cost the whole locale */ }
+    }
+    TABLES[code] = { entries: src.entries, prefixes: src.prefixes, rules: rules };
+    return TABLES[code];
+  }
+
+  var ACTIVE = tableFor(LANG) || { entries: {}, prefixes: [], rules: [] };
+  window.__ckitLocale = LANG;
+  window.__ckitLocales = function () {
+    var out = [LANG];
+    if (DICT.locales) for (var c in DICT.locales) if (Object.prototype.hasOwnProperty.call(DICT.locales, c) && c !== LANG) out.push(c);
+    return out;
+  };
+
+  /**
+   * Switch the interface language inside the page. Returns false when that locale was not shipped,
+   * which is the only honest failure - the caller can then say so instead of going quiet.
+   */
+  window.__ckitSetLocale = function (code) {
+    var t = tableFor(code);
+    if (!t) return false;
+    ACTIVE = t;
+    window.__ckitLocale = code;
+    // Keep the rebuild guard in step, or the next re-injection would short-circuit and leave the
+    // engine's own idea of the locale behind the one the user just picked.
+    window.__ckitEngineBuild = BASE + "/d" + VER + "/" + code;
+    scan(document.documentElement);
+    return true;
+  };
 
   function expand(str, m) {
     return str.replace(/\$(\d)/g, function (_, n) { return m[+n] === undefined ? "" : m[+n]; });
@@ -26,17 +75,17 @@
 
   function lookup(s) {
     if (!s) return null;
-    var hit = ENTRIES[s];
+    var hit = ACTIVE.entries[s];
     if (hit) return hit;
-    for (var i = 0; i < RULES.length; i++) {
-      var m = s.match(RULES[i].re);
+    for (var i = 0; i < ACTIVE.rules.length; i++) {
+      var m = s.match(ACTIVE.rules[i].re);
       if (m) {
-        var r = expand(RULES[i].out, m);
+        var r = expand(ACTIVE.rules[i].out, m);
         if (r && r !== s) return r;
       }
     }
-    for (var j = 0; j < PREFIXES.length; j++) {
-      var from = PREFIXES[j].from, to = PREFIXES[j].to;
+    for (var j = 0; j < ACTIVE.prefixes.length; j++) {
+      var from = ACTIVE.prefixes[j].from, to = ACTIVE.prefixes[j].to;
       if (s.length > from.length && s.slice(0, from.length) === from) return to + s.slice(from.length);
     }
     return null;
@@ -157,6 +206,6 @@
   // safety net for portals/menus mounted outside the observed subtree
   window.__ckitTimer = setInterval(function () { scan(document.documentElement); }, 1200);
 
-  window.__zhUIStats = { version: VER, entries: Object.keys(ENTRIES).length };
-  try { console.log("[cline-kit] overlay v" + VER + " loaded (" + Object.keys(ENTRIES).length + " entries)"); } catch (e) { }
+  window.__zhUIStats = { version: VER, entries: Object.keys(ACTIVE.entries).length };
+  try { console.log("[cline-kit] overlay v" + VER + " loaded (" + Object.keys(ACTIVE.entries).length + " entries, " + window.__ckitLocales().length + " locales)"); } catch (e) { }
 })();

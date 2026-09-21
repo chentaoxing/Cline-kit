@@ -4,7 +4,37 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.4.0] - 2026-09-21
+
+### Changed
+
+- **Switching the interface language inside Cline is now instant and needs no background service.**
+  Every locale ships inside the injected payload, so a click translates the open window on the
+  spot. Until now a click only wrote a request that the resident injector had to pick up - which
+  meant that if the injector was not running, the control looked outright broken. That was the
+  maintainer's own report: "界面语言切换点击了没用". The background service is now only
+  responsible for persisting the choice to the config, and when it is absent the row says so
+  without blocking the switch.
+- Payload 59 KB -> 114 KB, because five dictionaries travel with it. The English key list is stored
+  once and each locale is a value array aligned to it, so the cost is 74 KB rather than 112 KB.
+- To keep that from being re-parsed every four seconds, the injector now probes the page's own
+  build string and only re-sends the payload when it differs.
+
+### Added
+
+- `window.__ckitSetLocale(code)` / `__ckitLocale` / `__ckitLocales()` - the engine can change
+  language inside the page, re-translating from the originals it already keeps per node.
+- A 30th check asserts the payload still carries every locale and that each value array is aligned
+  to the key list, so a future refactor cannot quietly reintroduce the background dependency.
+
+### Fixed
+
+- The language row reported a stall as a red error. With in-page switching that case is now about
+  persistence, not about the click failing, so it reads as a note: the change applied, and it will
+  not survive a restart until the service is running again.
+
 ## [0.3.1] - 2026-09-21
+
 
 ### Fixed
 

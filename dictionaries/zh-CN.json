@@ -1,5 +1,5 @@
 {
- "version": 7,
+ "version": 9,
  "language": "zh-CN",
  "label": "简体中文",
  "clineVersion": "0.0.32",
@@ -621,11 +621,12 @@
   },
   "language-picker": {
    "title": "界面语言",
-   "hint": "由 cline-kit 添加；约 4 秒生效，无需重启，选择会保存。",
+   "hint": "由 cline-kit 添加；点击即时生效，无需重启，选择会保存。",
    "switching": "切换中…",
    "offTip": "恢复 Cline 原始文案",
    "stringsWord": "条",
-   "stalled": "改动没有被应用：后台注入器没在运行。用 ckit start 启动 Cline 后再点一次。"
+   "stalled": "改动没有被应用：后台注入器没在运行。用 ckit start 启动 Cline 后再点一次。",
+   "unsaved": "已在本窗口生效；后台服务未在运行，重启后不会保留这个选择。"
   }
  }
 }

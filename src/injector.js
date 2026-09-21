@@ -50,17 +50,29 @@ function clineRunning() {
   }
 }
 
-async function installOnce(port, source, version) {
+async function installOnce(port, source, version, pageBuild) {
   const results = await cdp.eachPage(port, async (api, target) => {
     await api.rpc("Runtime.enable");
     await api.rpc("Page.enable");
     const prev = registered.get(target.id);
-    if (!prev || prev.dictVersion !== version) {
+    const current = prev && prev.dictVersion === version;
+    if (!current) {
       if (prev) {
         try { await api.rpc("Page.removeScriptToEvaluateOnNewDocument", { identifier: prev.scriptId }); } catch (e) { }
       }
       const r = await api.rpc("Page.addScriptToEvaluateOnNewDocument", { source });
       registered.set(target.id, { scriptId: r.identifier, dictVersion: version });
+    }
+    // The payload now carries every locale, so it is ~110 KB rather than ~59 KB. Ask the page what it
+    // is already running before re-sending it: an idle window should not pay to parse the whole
+    // dictionary set every four seconds.
+    if (pageBuild && current) {
+      let build = "";
+      try {
+        const probe = await api.rpc("Runtime.evaluate", { expression: "String(window.__ckitEngineBuild||'')", returnByValue: true });
+        build = probe && probe.result ? String(probe.result.value) : "";
+      } catch (e) { build = ""; }
+      if (build === pageBuild) return true;
     }
     const r = await api.rpc("Runtime.evaluate", { expression: source });
     if (r && r.exceptionDetails) {
@@ -109,7 +121,7 @@ async function main() {
         }
       } catch (e) { log("language intent failed: " + e.message); }
       const composed = payload.compose(conf);
-      await installOnce(conf.port || port, composed.source, composed.version);
+      await installOnce(conf.port || port, composed.source, composed.version, composed.pageBuild);
       writeActiveVersion(composed.version);
       gone = 0;
     } catch (e) {

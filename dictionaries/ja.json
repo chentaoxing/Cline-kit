@@ -1,5 +1,5 @@
 {
- "version": 3,
+ "version": 5,
  "language": "ja",
  "label": "Japanese",
  "clineVersion": "0.0.32",
@@ -620,11 +620,12 @@
   },
   "language-picker": {
    "title": "表示言語",
-   "hint": "cline-kit が追加。約4秒で反映され、再起動は不要です。選択は保存されます。",
+   "hint": "cline-kit が追加。クリックすると即座に反映され、再起動は不要です。選択は保存されます。",
    "switching": "切り替え中…",
    "offTip": "Cline 本来の表示に戻す",
    "stringsWord": "件",
-   "stalled": "変更が適用されませんでした。バックグラウンドのインジェクターが停止中です。ckit start で Cline を起動してからもう一度お試しください。"
+   "stalled": "変更が適用されませんでした。バックグラウンドのインジェクターが停止中です。ckit start で Cline を起動してからもう一度お試しください。",
+   "unsaved": "このウィンドウでは反映済みです。バックグラウンドサービスが停止中のため、再起動するとこの選択は保持されません。"
   }
  }
 }

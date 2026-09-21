@@ -1,5 +1,5 @@
 {
- "version": 3,
+ "version": 5,
  "language": "vi",
  "label": "Vietnamese",
  "clineVersion": "0.0.32",
@@ -620,11 +620,12 @@
   },
   "language-picker": {
    "title": "Ngôn ngữ giao diện",
-   "hint": "Do cline-kit thêm vào. Áp dụng trong ~4 giây, không cần khởi động lại, lựa chọn được lưu.",
+   "hint": "Do cline-kit thêm vào. Áp dụng ngay khi bấm, không cần khởi động lại, lựa chọn được lưu.",
    "switching": "Đang chuyển…",
    "offTip": "Giữ nguyên văn bản gốc của Cline",
    "stringsWord": "chuỗi",
-   "stalled": "Thay đổi không được áp dụng: trình nạp nền đang không chạy. Hãy khởi động Cline bằng ckit start rồi bấm lại."
+   "stalled": "Thay đổi không được áp dụng: trình nạp nền đang không chạy. Hãy khởi động Cline bằng ckit start rồi bấm lại.",
+   "unsaved": "Đã áp dụng trong cửa sổ này; dịch vụ nền đang không chạy nên lựa chọn sẽ không được giữ sau khi khởi động lại."
   }
  }
 }

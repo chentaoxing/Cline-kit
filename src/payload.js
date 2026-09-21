@@ -17,8 +17,33 @@ function hash12(s) {
   return crypto.createHash("sha1").update(s).digest("hex").slice(0, 12);
 }
 
+// The whole point of shipping every locale inside the payload is that clicking a language no longer
+// depends on a Node process being alive. The English keys are identical across locales (npm test
+// enforces it), so they are stored once and each locale is a value array aligned to that list -
+// ~74 KB instead of ~112 KB for five full copies.
+function embedAllLocales(d, cfgObj) {
+  const reference = dict.load(Object.assign({}, cfgObj, { dictionary: "zh-CN" }));
+  const keys = Object.keys(reference.entries || {});
+  const locales = {};
+  for (const code of dict.available()) {
+    if (code === d.language) continue;
+    const other = dict.load(Object.assign({}, cfgObj, { dictionary: code }));
+    locales[code] = {
+      version: other.version,
+      entries: keys.map((k) => other.entries[k] || ""),
+      rules: other.rules || [],
+      prefixes: other.prefixes || []
+    };
+  }
+  // "leave Cline's own text alone" has to be selectable from inside the page too.
+  locales[dict.NONE] = { version: 0, entries: [], rules: [], prefixes: [] };
+  d.keys = keys;
+  d.locales = locales;
+  return d;
+}
+
 function compose(cfgObj) {
-  const d = dict.load(cfgObj);
+  const d = embedAllLocales(dict.load(cfgObj), cfgObj);
   // the engine guards on its own build hash so code edits hot-swap even when the dictionary
   // version is unchanged
   d.engineBuild = hash12(ENGINE);
@@ -51,6 +76,10 @@ function compose(cfgObj) {
   return {
     source: "(function(){\n" + body + "\n})();",
     version,
+    // What the engine inside the page will call itself for this payload. The injector compares that
+    // before re-sending ~110 KB, so an idle window is not asked to re-parse the whole dictionary set
+    // every four seconds.
+    pageBuild: d.engineBuild + "/d" + d.version + "/" + d.language,
     dict: d,
     picked
   };
