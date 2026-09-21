@@ -131,6 +131,8 @@ ckit locales none     # 不再替换 Cline 自己的文案
 `ckit install` 每次都会打印当前语言和这条命令，第一次 `ckit start` 成功后也会提示一次。
 `ckit config --dictionary=<语言>` 是等价的底层写法。选定非默认语言后，`ckit update` 热更新的就是那一份。
 
+如果点了十几秒没反应，那一行会变红并直接说明原因：换语言是后台注入器在做的事，只有 Cline 是**经本工具启动**的（它改写的快捷方式、`ckit start`、或便携包的 `install.cmd`）才有效。直接双击 `cline-app.exe` 会看到那一行，但背后没人执行。
+
 这一行是本工具加进去的，Cline 原生没有语言设置；不想要就 `ckit feature disable language-picker`。
 
 ## 功能

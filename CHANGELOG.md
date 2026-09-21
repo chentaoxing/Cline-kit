@@ -4,7 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.3.1] - 2026-09-21
+
+### Fixed
+
+- **The language row now says so when nothing is applying the change.** Clicking a language with the
+  background injector not running (Cline opened straight from `cline-app.exe`, or through
+  `ckit attach`, which injects once and exits) used to look like a dead control: the request was
+  written, nobody consumed it, and the row kept saying "Switching..." forever. After two injector
+  cycles without progress it turns red and states the cause and the fix. Reported by the maintainer
+  as "点击了没用", which was exactly this case.
+
+### Added
+
+- `START-HERE.txt` inside the portable package is bilingual, Chinese first - the audience for a
+  no-terminal install is precisely the reader who does not want English setup instructions.
+- `ckit doctor` surfaces the stall (`STUCK waiting for the injector`) rather than reporting a
+  harmless `pending` as if it were progress.
+
 ## [0.3.0] - 2026-09-21
+
 
 ### Added
 

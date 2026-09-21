@@ -40,7 +40,9 @@ function summarize(stats) {
   if (stats.row) {
     const bits = [stats.row === "rendered" ? "row present" : "row not on screen (" + stats.row + ")"];
     if (stats.current) bits.push("current " + stats.current);
-    if (stats.pending && stats.pending !== stats.current) bits.push("pending " + stats.pending);
+    if (stats.pending && stats.pending !== stats.current) {
+      bits.push(stats.stalled ? "STUCK waiting for the injector (is it running? ckit start)" : "pending " + stats.pending);
+    }
     if (stats.choices) bits.push(stats.choices + " choices");
     return bits.join(", ");
   }

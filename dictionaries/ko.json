@@ -1,5 +1,5 @@
 {
- "version": 2,
+ "version": 3,
  "language": "ko",
  "label": "Korean",
  "clineVersion": "0.0.32",
@@ -623,7 +623,8 @@
    "hint": "cline-kit이 추가한 항목입니다. 약 4초 후 적용되며 재시작이 필요 없고 설정은 저장됩니다.",
    "switching": "변경 중…",
    "offTip": "Cline 원문으로 되돌리기",
-   "stringsWord": "개"
+   "stringsWord": "개",
+   "stalled": "변경 사항이 적용되지 않았습니다. 백그라운드 인젝터가 실행 중이 아닙니다. ckit start로 Cline을 실행한 뒤 다시 눌러 주세요."
   }
  }
 }

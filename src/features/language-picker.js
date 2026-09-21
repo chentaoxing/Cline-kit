@@ -96,8 +96,24 @@
     try { return localStorage.getItem(PENDING); } catch (e) { return null; }
   }
 
+  // A click cannot apply itself: the resident injector has to consume the request. When it is not
+  // running - Cline opened directly, or via `ckit attach`, which injects once and stays out of the
+  // way - the row would otherwise look broken with no explanation. So if the request is still
+  // sitting there after two injector cycles, say so in the row.
+  var stalled = false;
+  var stallTimer = null;
+  function armStallWatch(code) {
+    stalled = false;
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = setTimeout(function () {
+      stallTimer = null;
+      if (pendingCode() === code) { stalled = true; render(); }
+    }, 12000);
+  }
+
   function choose(code) {
     try { localStorage.setItem(PENDING, code); } catch (e) { return; }
+    armStallWatch(code);
     render();                              // show "switching" immediately, the injector applies it
   }
 
@@ -109,7 +125,13 @@
     left.appendChild(el("p", TITLE_CLS, t("title", "Interface language")));
     var p = pendingCode();
     var waiting = p && p !== CURRENT;
-    left.appendChild(el("p", HINT_CLS, waiting ? t("switching", "Switching...") : t("hint", "Added by cline-kit. Applies in a few seconds, no restart.")));
+    if (!waiting && stalled) stalled = false;         // the injector took the request
+    var stuck = waiting && stalled;
+    left.appendChild(el("p", HINT_CLS, stuck ? t("stalled",
+      "Nothing is applying the change - start the kit with `ckit start`, then click again.")
+      : (waiting ? t("switching", "Switching...")
+        : t("hint", "Added by cline-kit. Applies in a few seconds, no restart."))));
+    if (stuck) left.lastChild.style.color = "var(--destructive, #d13438)";
     row.appendChild(left);
 
     var group = el("div", GROUP_CLS);
@@ -155,7 +177,7 @@
     }
     st[ID + "_stats"] = {
       version: VER, build: BUILD, row: "rendered", current: CURRENT,
-      pending: pendingCode(), choices: CHOICES.length
+      pending: pendingCode(), stalled: stalled, choices: CHOICES.length
     };
   }
 

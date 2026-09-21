@@ -1,6 +1,6 @@
 {
   "name": "cline-kit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Desktop enhancement kit for the Cline desktop app (Windows): keeps every registered project visible in the sidebar, and adds an interface-language picker inside Cline's own Settings (zh-CN, zh-TW, ja, ko, vi, or leave the text alone). Runtime overlay - no binary patching.",
   "keywords": [
     "cline",

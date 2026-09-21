@@ -143,6 +143,11 @@ ckit locales none     # stop replacing Cline's own text
 `ckit config --dictionary=<code>` is the equivalent low-level write. Once a non-default locale is
 selected, `ckit update` hot-updates *that* dictionary.
 
+If clicking does nothing for more than a few seconds, the row turns red and says why: applying a
+language is the kit's background injector, so it only works when Cline was started through the kit (a
+shortcut it installed, `ckit start`, or the portable package's `install.cmd`). Opening
+`cline-app.exe` directly shows the row with nothing behind it.
+
 The row is added by this kit — Cline has no language setting of its own. Turn it off with
 `ckit feature disable language-picker`.
 

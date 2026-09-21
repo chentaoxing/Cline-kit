@@ -1,5 +1,5 @@
 {
- "version": 3,
+ "version": 4,
  "language": "zh-TW",
  "label": "繁體中文",
  "clineVersion": "0.0.32",
@@ -624,7 +624,8 @@
    "hint": "由 cline-kit 新增；約 4 秒生效，不需重新啟動，設定會儲存。",
    "switching": "切換中…",
    "offTip": "還原 Cline 原始文字",
-   "stringsWord": "條"
+   "stringsWord": "條",
+   "stalled": "變更未被套用：背景注入器未在執行。請用 ckit start 啟動 Cline 後再點一次。"
   }
  }
 }
