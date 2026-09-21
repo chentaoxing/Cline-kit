@@ -105,6 +105,14 @@ workflow 文件时必须同步改这里，否则 publish job 会失败。发布 
 * 有意不做：按界面文字自动判定语言（语言由词典显式决定，两处"当前语言"会互相矛盾）、
   独立 exe（未签名单文件会被 SmartScreen/杀软拦，而注入器本就要一直开本地调试端口）、
   按 Cline 版本拆分规则文件（用 `ckit audit` 出差量，成本远低于维护版本树）。
+* 有意不做（2026-09-21 实测后决定）：**用本机其他 harness 的模型目录给 context-meter 兜底上限**。
+  读是读得到的——Hermes 的 `cache/openrouter_model_metadata.json`、`models_dev_cache.json` 里
+  kimi-k3 / muse-spark / deepseek / laguna 四个都有值。但那些目录记的是**模型理论上限**（全是 1,048,576），
+  而 Cline 的免费通道自己压到了 **262,144**（唯一能对照的那条实测：Cline 报 64% 时按目录值算是 16%）。
+  拿它兜底的方向是"界面显示还很空、实际快满了"，比留白更坑；再加上模型名对不上
+  （`cline-free/kimi-k3` vs `moonshotai/kimi-k3`，模糊匹配在 models.dev 里能匹到 94 条不同服务商的条目），
+  需要一套确定的匹配规则才能用。结论：`contextWindow` 只信 Cline，缺了就显示「上限未知」，
+  要指定就 `ckit config --context-limit=<tokens>` 由人给。
 
 ## 7. 已知未做（README 已承认）
 

@@ -208,6 +208,11 @@ The row is added by this kit — Cline has no language setting of its own. Turn 
   the registry holds two different `LLM` folders and one already has a native group, the kit cannot tell
   which one that is. It lists both, qualified with the parent folder, and drops the "no sessions yet"
   line on those rows rather than asserting something it does not know.
+* **Some models report no context window**, so the meter shows `no limit` instead of a percentage for
+  them. Third-party model catalogues do have a number for those models, and we deliberately do not use
+  it: they list the model's theoretical maximum (1M for several of Cline's free routes) while Cline's
+  own gateway caps the same model far lower (measured: 262,144), which would render "plenty of room
+  left" over a nearly-full window. `ckit config --context-limit=<tokens>` is yours to set.
 * Proper nouns are never translated: Cline, provider and model names, tool identifiers, paths.
 
 ## Security
