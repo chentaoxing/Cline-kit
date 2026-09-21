@@ -4,7 +4,29 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.4.1] - 2026-09-21
+
+### Fixed
+
+- **`ckit install` now re-scans every launch path on every run.** It used to re-point only the
+  shortcuts it had backed up the first time, so a shortcut or taskbar pin created afterwards kept
+  launching a plain Cline and nothing said so. The scan also now covers taskbar pins
+  (`Quick Launch\User Pinned\TaskBar`), which were missed entirely - for a desktop-app tool that is
+  most people's actual launch path.
+- `ckit doctor` distinguishes "Cline is not running" from "Cline is running but was not started by
+  the kit". The second case is the one that cost the maintainer three rounds of debugging: the open
+  window keeps whatever overlay it was injected with, so the controls on screen can be an older
+  build than the code on disk, and every test run against a *different* window still passed.
+- `ckit install` prints what it found instead of one line: paths scanned, newly routed, already
+  routed, and any it could not change (which now also sets a non-zero exit code).
+
+### Notes
+
+- An overlay window that is already open will not upgrade itself. After updating, close Cline and
+  reopen it from the shortcut - `ckit doctor` will tell you when the window you have open is stale.
+
 ## [0.4.0] - 2026-09-21
+
 
 ### Changed
 

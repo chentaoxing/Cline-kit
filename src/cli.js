@@ -168,8 +168,22 @@ async function main() {
 
   if (cmd === "install") {
     const r = await require("./install-win").install(conf);
-    console.log("Shortcuts now launch Cline with the overlay:");
-    r.shortcuts.forEach((s) => console.log("  " + s));
+    const rep = r.report || {};
+    console.log("Launch paths scanned: " + (rep.scanned || 0));
+    if (rep.hooked && rep.hooked.length) {
+      console.log("Now routed through the kit (" + rep.hooked.length + "):");
+      rep.hooked.forEach((s) => console.log("  " + s));
+    }
+    if (rep.already && rep.already.length) {
+      console.log("Already going through the kit (" + rep.already.length + "):");
+      rep.already.forEach((s) => console.log("  " + s));
+    }
+    if (rep.created) console.log("No Cline shortcut existed, so one was created: " + rep.created);
+    if (rep.failed && rep.failed.length) {
+      console.log("COULD NOT be changed (" + rep.failed.length + ") - Cline opened from these will look unmodified:");
+      rep.failed.forEach((f) => console.log("  " + f.lnk + "  ->  " + f.why));
+      process.exitCode = 1;
+    }
     console.log("Launcher: " + r.launcher);
     console.log("Open Cline from those shortcuts from now on; `ckit uninstall` restores them.");
     languageTip(cfg.read(), false);

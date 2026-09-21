@@ -65,9 +65,16 @@ async function run() {
   add("debug port", !!alive, port ? "127.0.0.1:" + port + (alive ? " responding" : " NOT responding") : "no port in config - run ckit start");
   if (!alive) {
     add("injector", !!launcher.injectorRunning(), launcher.injectorRunning() ? "pid " + launcher.injectorRunning() : "not running");
-    report.hint = alive ? "" :
-      "Cline has to be started by cline-kit (it sets WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS). " +
-      "If Cline is open but has no debug port, run: ckit start --restart";
+    // The confusing case this exists for: Cline is open, the overlay is visible in it, but it was
+    // injected by a launcher session that has since ended. The window keeps running whatever payload
+    // it got, so the controls on screen can be a different build from the code on disk - and nothing
+    // reports that unless we say it here.
+    const open = launcher.clineRunning();
+    report.hint = alive ? "" : (open
+      ? "Cline is running but was NOT started by cline-kit, so this window is unreachable: it is still " +
+      "showing the overlay from whenever it was last injected, which may be older than the code on disk. " +
+      "Close Cline and open it from the shortcut the kit installed (or run: ckit start --restart)."
+      : "Cline is not running. Start it with `ckit start`, or open it from the shortcut `ckit install` set up.");
     return report;
   }
 
