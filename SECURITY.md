@@ -15,19 +15,31 @@ That gives the Cline window a Chrome DevTools Protocol endpoint. Consequences wo
    your user can attach to `127.0.0.1:<port>` and read or drive the Cline UI — including anything the
    window can see. This is not a vulnerability introduced by this tool (any `--remote-debugging-port`
    user has the same exposure), but it *is* a wider local attack surface than Cline normally has.
+   The other direction is bounded: this tool only ever evaluates in pages whose origin is Cline's own
+   webview (`tauri.localhost`), so a stale port number that some other Chromium app has grabbed in the
+   meantime does not get our payload. `ckit config --page-origin=<host>` changes the accepted origin;
+   `*` accepts any page on the port and exists for debugging, not for normal use.
 2. **The port is random per session** and bound to loopback only. It is not exposed to the network.
+   It stays open for as long as *that Cline window* runs — `ckit stop` ends the injector but does not
+   close the port, because the port belongs to Cline. Quitting Cline closes it.
 3. **The port number and Cline path are stored** in `%APPDATA%\cline-kit\config.json` in plain text.
-4. **Injected code is local by default.** The overlay is `src/engine.js` plus a JSON dictionary read from
-   disk. Nothing is fetched or executed unless you enable dictionary updates.
+4. **The overlay itself is local.** It is `src/engine.js`, the enabled feature scripts in
+   `src/features/`, and the locale dictionaries - all read from disk and composed into one payload.
+   The one thing that can come from the network is a newer **dictionary** (data, not code), and while
+   the injector is alive it checks for one once a day unless you turn that off (see below).
 5. **Remote dictionaries are validated, not trusted.** `src/dict.js` rejects a file that is not an
    object with the expected shape, has more than 20 000 entries, has any key/value longer than 400
    characters, or contains a rule whose regex is longer than 200 characters, is not anchored with
    `^…$`, or fails to compile. A rejected update is dropped and the local dictionary keeps working.
-   Note the residual risk: rule patterns do reach `new RegExp()` in the page, so a malicious dictionary
-   could at worst cause CPU waste via a pathological regex — it cannot execute code.
-6. **The installer edits your shortcuts.** `ckit install` rewrites the target of any Start Menu or
-   Desktop `.lnk` that points at your `cline-app.exe`, after saving the original target and arguments in
-   the config file so `ckit uninstall` can restore them.
+   Regexes are then **measured, not guessed**: each pattern is run against progressively longer inputs
+   built from its own alphabet, and anything that breaks a 30 ms budget is rejected. That closes the
+   residual risk of a downloaded file freezing the window via catastrophic backtracking - the same
+   class of hang the observer-loop guards exist for. The local override file
+   (`%APPDATA%\cline-kit\<locale>.local.json`) goes through the identical gate.
+6. **The installer edits your shortcuts.** `ckit install` rewrites the target of every `.lnk` that points
+   at your `cline-app.exe` - Start Menu, Desktop **and taskbar pins** (`Quick Launch\User Pinned\TaskBar`)
+   - after saving each original target and argument list in the config file, so `ckit uninstall` restores
+   them exactly. It prints which launch paths it changed and which it could not.
 
 ## Turning network updates off
 
@@ -35,8 +47,10 @@ That gives the Cline window a Chrome DevTools Protocol endpoint. Consequences wo
 ckit config --auto-update=off
 ```
 
-With this set the tool never contacts GitHub; the dictionary only changes when you update the tool
-itself.
+This is off-switch for the only outbound request the tool makes. Note that dictionary auto-update is
+**on by default**, so if you want a machine that never touches the network, set this. With it set the
+dictionary only changes when you update the tool itself; `ckit update --force` still fetches on demand
+and says so in the output.
 
 ## Not doing
 
@@ -48,6 +62,6 @@ itself.
 
 ## Reporting a problem
 
-Open an issue. If your concern involves the DevTools port specifically, say so — the mitigation is to run
-`ckit stop` and use Cline in English, or to keep the tool installed but only launch Cline through it
-when you need Chinese.
+Open an issue. If your concern involves the DevTools port specifically, say so — the mitigations are to
+quit Cline (that is what closes the port; `ckit stop` only ends the injector), to disable dictionary
+updates with `ckit config --auto-update=off`, or to `ckit uninstall` and relaunch Cline normally.

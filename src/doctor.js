@@ -60,6 +60,19 @@ async function run() {
 
   add("cline executable", !!found.path, (found.path || "not found") + " (via " + found.source + ")");
 
+  // Cline's own hub lives in a code-sidecar bound to 127.0.0.1:25463, and every launch attaches to
+  // whatever is already there. A sidecar that outlived its window keeps that hub answering for days -
+  // which is what the app itself reports inside the window as "Hub connection closed (code=1006)".
+  // Nothing about the overlay affects it, so say it here rather than let it look like our fault.
+  const hub = launcher.hubOwner();
+  const orphans = launcher.orphanSidecars();
+  const hubDetail = (hub
+    ? "pid " + hub.pid + " on :" + hub.port + (hub.ageSec >= 0 ? ", up " + Math.round(hub.ageSec / 60) + " min" : "")
+    : "no listener on :" + launcher.HUB_PORT) +
+    (orphans.length ? "; " + orphans.length + " sidecar(s) outlived their window (pids " + orphans.map((o) => o.pid).join(" ") + ")" : "");
+  add("cline hub", !orphans.length && !!hub, hubDetail + (!orphans.length && hub ? ""
+    : " - run: ckit start --restart (it takes the whole process family down, hub included)"));
+
   const port = conf.port;
   const alive = port ? await launcher.isPortAlive(port) : false;
   add("debug port", !!alive, port ? "127.0.0.1:" + port + (alive ? " responding" : " NOT responding") : "no port in config - run ckit start");
@@ -80,14 +93,20 @@ async function run() {
 
   const current = payload.compose(conf).version;
   const installed = require("./injector").readActiveVersion();
+  // active-version is written by the injector and deleted when it is stopped. On Windows we can
+  // still see a process that was started outside `ckit start` and killed with the task manager,
+  // which leaves the file behind; elsewhere the only signal is the file itself.
+  const keepAlive = process.platform === "win32" ? !!launcher.injectorRunning() : !!installed;
   const fresh = installed === current;
-  add("payload version", fresh, (fresh ? "in page " + current : "installed " + (installed || "?") + " but the source builds " + current +
+  add("payload version", fresh && !!keepAlive, (fresh
+    ? "in page " + current + (keepAlive ? "" : " (recorded by an injector that is no longer running)")
+    : "installed " + (installed || "?") + " but the source builds " + current +
     " - run: ckit start (it restarts an injector whose code or dictionary went stale underneath it)"));
 
   const pages = await cdp.eachPage(port, async (api) => {
     const raw = await evaluate(api, PROBE);
     try { return JSON.parse(raw); } catch (e) { return null; }
-  });
+  }, conf.pageOrigin);
   const live = pages.map((p) => p.result).filter(Boolean);
   add("page reachable", live.length > 0, live.length + " of " + pages.length + " webview target(s) answered");
 
@@ -107,7 +126,7 @@ async function run() {
   const again = (await cdp.eachPage(port, async (api) => {
     const raw = await evaluate(api, PROBE);
     try { return JSON.parse(raw); } catch (e) { return null; }
-  })).map((p) => p.result).filter(Boolean);
+  }, conf.pageOrigin)).map((p) => p.result).filter(Boolean);
   const writesAfter = again.map((p) => p.stats && p.stats.writes).filter((v) => typeof v === "number");
   const delta = writesBefore.length && writesAfter.length ? writesAfter[0] - writesBefore[0] : 0;
   add("overlay write rate", delta < 300, delta + " DOM writes over 3 s on an idle page" +

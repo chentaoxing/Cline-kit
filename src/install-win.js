@@ -11,10 +11,19 @@ Set sh = CreateObject("WScript.Shell")
 sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File ""${ps1}""", 0, False
 `;
 
-const PS1 = (nodeExe, argsString) => `# cline-kit launcher
+const PS1 = (nodeExe, scriptPath) => `# cline-kit launcher
 $ErrorActionPreference = 'Stop'
 try {
-  Start-Process -FilePath ${psQuote(nodeExe)} -ArgumentList ${psQuote(argsString)} -WindowStyle Hidden
+  # The Node that installed this is recorded, not assumed to be permanent: the portable package can
+  # be moved, and an npm install outlives the node.exe that ran it. Fall back to whatever is on
+  # PATH, and say so in the log if there is none.
+  $recorded = ${psQuote(nodeExe)}
+  $node = if (Test-Path -LiteralPath $recorded) { $recorded } else {
+    $cmd = Get-Command node.exe -ErrorAction SilentlyContinue
+    if ($cmd) { $cmd.Source } else { '' }
+  }
+  if (-not $node) { throw "no Node.js runtime: expected $recorded and nothing is on PATH" }
+  Start-Process -FilePath $node -ArgumentList ${psQuote('"' + scriptPath + '" start')} -WindowStyle Hidden
 } catch {
   # surface failures instead of silently doing nothing
   $log = Join-Path $env:APPDATA 'cline-kit\\launcher-error.log'
@@ -70,11 +79,6 @@ foreach ($d in $dirs) {
   } catch (e) { return []; }
 }
 
-function findShortcuts(exePath) {
-  const want = String(exePath || "").toLowerCase();
-  return scanShortcuts().filter((s) => s.target && s.target.toLowerCase() === want).map((s) => s.lnk);
-}
-
 function setShortcut(lnkPath, target, args, icon, workingDir, description) {
   const script = `$sh = New-Object -ComObject WScript.Shell
 $o = $sh.CreateShortcut(${psQuote(lnkPath)})
@@ -106,7 +110,7 @@ function writeLauncherFiles(cfgObj) {
   // Windows PowerShell 5.1 reads .ps1 as ANSI unless a UTF-8 BOM is present, and wscript reads
   // .vbs as ANSI unless it is UTF-16LE with a BOM. Without these, any non-ASCII character in the
   // install path (a Chinese username, for example) silently breaks the launcher.
-  fs.writeFileSync(ps1, "﻿" + PS1(process.execPath, '"' + cli + '" start'), "utf8");
+  fs.writeFileSync(ps1, "﻿" + PS1(process.execPath, cli), "utf8");
   fs.writeFileSync(vbs, "﻿" + VBS(ps1), "utf16le");
   return { ps1, vbs };
 }
@@ -187,4 +191,4 @@ async function uninstall(cfgObj) {
   return { restored: restore };
 }
 
-module.exports = { install, uninstall, findShortcuts, writeLauncherFiles };
+module.exports = { install, uninstall };

@@ -5,22 +5,28 @@
 ## 1. 本地体检（硬门槛）
 
 ```bash
-npm test                              # 30 项无依赖自检，必须全绿
+npm test                              # 无依赖自检，必须全绿（项数以输出为准，会随功能增加）
 node scripts/locale-switch-check.js    # 需 Cline 正由本工具启动：五份词典逐个真机验证
 node scripts/cli-locale-switch-check.js ja   # 用户那条指令（ckit locales）是否真的改变了窗口
+node scripts/language-picker-check.js ja   # 在软件里点：设置页那一行是否真的换了整个窗口
+node scripts/audit-live-check.js       # 窗口里跑的是不是当前这份源码，以及三条注入边界是否成立
 node src/cli.js doctor                 # 全绿；任何 FAIL 都表示装进窗口的东西和源码不一致
 node src/cli.js locales                # 六项（含 none）都在表里，当前语言带 *
 node scripts/make-portable.js <node.exe 路径> /tmp/p.zip   # 便携包能构建；随后解压后
 #   在 PATH 只剩 C:Windows 的窗口里跑 ckit.cmd locales，验证不依赖系统 Node
-node scripts/language-picker-check.js ja   # 在软件里点：设置页那一行是否真的换了整个窗口
 git status --short                     # 应为空
 ```
 
-`npm test` 里已包含 ship-clean 检查：仓库内出现个人路径、本机用户名、GitHub token 或散落邮箱就红。
-它是自动的，但**每次发布前仍然重跑一次**——诊断脚本很容易把真实路径写进文件。
+`/tmp/p.zip` 只是临时产物，不要留在仓库目录里。
 
-`%APPDATA%\cline-kit\audit-report.json`（工具输出，不在仓库里）会把界面上看到的账号邮箱当成
-"未翻译字符串"记录下来，别把它复制进 issue 或提交。
+`npm test` 里已包含 ship-clean 检查：仓库内出现个人路径、本机用户名、本机项目目录布局
+（取仓库自身路径的前两级做比对）、GitHub/npm token 或散落邮箱就红；`NOTICE`、`LICENSE` 也在扫描范围内。
+它是自动的，但**每次发布前仍然重跑一次**——诊断脚本很容易把真实路径写进文件，这次审核就是在
+`scripts/selftest.js` 里逮到了一整批写死的个人路径。
+
+`%APPDATA%\cline-kit\audit-report.json`（工具输出，不在仓库里）默认已经脱敏：邮箱、绝对路径、
+URL、长标识符都替换成占位符，并在文件里注明脱敏条数。只有显式 `ckit audit --raw` 才会写下真实内容，
+那种文件不要复制进 issue 或提交。
 
 ## 2. 语言包
 
@@ -64,7 +70,7 @@ Release → publish job 用 **npm Trusted Publishing（OIDC）** 执行 `npm pub
 * 能用于 `npm whoami`、包级读取，以及万一 OIDC 出问题时的本地发布兜底；
 * **不能**做需要交互式认证的写入——实测 `npm deprecate cline-kit@0.1.0` 两次都是 401 EOTP /
   要求浏览器认证，bypass-2FA 只覆盖发布这一类操作，元数据写入仍要真人过一道。所以 0.1.0 缺
-  provenance 这件事**维持现状不处理**（零下载，`latest` 已是 0.2.1，正常安装永远碰不到它）；
+  provenance 这件事**维持现状不处理**（零下载，`latest` 早已是 0.4.x，正常安装永远碰不到它）；
 * 网页端的 Deprecate 是**整包**弃用（会把所有版本一起标记），不能拿来代替单版本操作。
 
 自检里有一条 `npm_` 特征扫描，token 一旦被误写进仓库 `npm test` 立刻变红。
@@ -76,16 +82,18 @@ workflow 文件时必须同步改这里，否则 publish job 会失败。发布 
 一份不含 auth 行的 userconfig 顶掉它；trusted publishing 需要 npm ≥ 11.5.1，runner 的 Node 22 自带
 10.x 只会报 `ENEEDAUTH`，所以 publish job 钉 Node 24 + npm 12。
 
-发布后跑一次 `ckit update --force`，远端词典能拉到才算通。注意本机
-`%APPDATA%\cline-kit\config.json` 里的 `updateUrl` 不会被新的默认值覆盖，改地址时要一并
-`ckit config --update-url=...`。
+发布后跑一次 `ckit update --force`，远端词典能拉到才算通（返回 `Already up to date (remote is vN)`
+即为正常——`--force` 只跳过 24 小时节流，不会把相同或更旧的词典写进缓存）。注意早期版本在本机
+`%APPDATA%\cline-kit\config.json` 里留下过 `CHANGE_ME` 占位地址，`ckit config` 现在会在读取时把它
+修回默认值；如果你**主动**改过 `updateUrl`，换仓库或换包名时仍要一并 `ckit config --update-url=...`。
 
 ## 5. 发布之后
 
 * 把仓库链接补进 cline/cline 的 [#12518](https://github.com/cline/cline/issues/12518)
   与 [#13811](https://github.com/cline/cline/pull/13811)（那两处已经说明过本项目，公开后应给可点地址）。
-* 桌面版 i18n 移植 PR 仍被上游阻塞：`@cline/i18n` 只存在于 PR #13811 的 `feat/i18n-foundation` 分支，
-  2026-09-20 实测 `mergeable:false`，等它落地才有可依附的地基。
+* 桌面版 i18n 已经由我们自己提了 [#14337](https://github.com/cline/cline/pull/14337)：不依赖 #13811 的
+  `@cline/i18n`（它 2026-09-21 实测 `CONFLICTING`），改动只落在 `apps/examples/desktop-app` 里面。
+  目前是 draft，等对方 CI 真跑过再转正式，脉络见 [`upstream-i18n.md`](upstream-i18n.md)。
 
 ## 6. 一次性决定（留档，不必重复执行）
 

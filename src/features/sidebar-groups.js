@@ -40,7 +40,7 @@
   var norm = L.norm;
   var base = L.base;
   var strip = L.strip;
-  var KEY = CFG.storageKey || L.registryKey(storageKeys()) || "cline.code.workspace-selection.v2";
+  var DEFAULT_KEY = "cline.code.workspace-selection.v2";
 
   function storageKeys() {
     var out = [];
@@ -51,9 +51,17 @@
     return out;
   }
 
+  // Resolved per read, not once at boot: Cline only writes its registry key after the first project
+  // is registered, and a version bump (v2 -> v3) must not leave us reading an empty list until the
+  // window reloads. An explicit config override still wins.
+  function registryKeyNow() {
+    return CFG.storageKey || L.registryKey(storageKeys()) || DEFAULT_KEY;
+  }
+
   function registry() {
-    var parsed = L.parseRegistry(localStorage.getItem(KEY));
-    parsed.key = KEY;
+    var key = registryKeyNow();
+    var parsed = L.parseRegistry(localStorage.getItem(key));
+    parsed.key = key;
     return parsed;
   }
 

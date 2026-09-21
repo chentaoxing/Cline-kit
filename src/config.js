@@ -69,11 +69,13 @@ const DEFAULTS = {
   featureHide: [],
   // override Cline's workspace-registry localStorage key; empty = detect cline.code.workspace-selection.vN
   storageKey: "",
+  // host of the webview we are willing to inject into; empty = tauri.localhost (Cline desktop).
+  // Only change this if Cline moves its origin - it exists so a stale debug port cannot make us
+  // inject into a different Chromium app that grabbed the same port number.
+  pageOrigin: "",
   // installer state
   shortcutPath: null,
-  autostart: false,
   lastUpdateCheck: 0,
-  remoteVersion: null,
   // one-off: `ckit start` points at `ckit locales` the first time it succeeds
   hintLanguageShown: false
 };
@@ -82,7 +84,11 @@ function read() {
   migrateLegacy();
   let data = {};
   try { data = JSON.parse(fs.readFileSync(configFile(), "utf8")); } catch (e) { data = {}; }
-  return Object.assign({}, DEFAULTS, data);
+  const conf = Object.assign({}, DEFAULTS, data);
+  // Early checkouts shipped a placeholder update url, and a stored value outranks the default. Heal
+  // that one case so the first installs released before 1.0 still get dictionary updates.
+  if (/CHANGE_ME/.test(String(conf.updateUrl || ""))) conf.updateUrl = DEFAULTS.updateUrl;
+  return conf;
 }
 
 function write(cfg) {
@@ -106,5 +112,5 @@ function cachedDictFile(name) { return path.join(cacheDir(), name + ".json"); }
 
 module.exports = {
   configDir, configFile, cacheDir, logDir, read, write, ensureDirs, DEFAULTS,
-  localDictFile, cachedDictFile, migrateLegacy, legacyDir, DIR_NAME
+  localDictFile, cachedDictFile
 };

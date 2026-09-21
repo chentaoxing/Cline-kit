@@ -1,12 +1,37 @@
 "use strict";
 // Walk the Cline UI over CDP and list strings still left in English.
 // Useful after a Cline update, to find dictionary gaps. Output: <configDir>/audit-report.json
+//
+// The report is meant to be pasted into an issue, and the UI it walks contains the signed-in account's
+// e-mail, session titles, project names and file paths. So everything written out is redacted first,
+// by default, and `--raw` is opt-in for your own machine only.
 const fs = require("fs");
 const path = require("path");
 const cfg = require("./config");
 const cdp = require("./cdp");
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Patterns that identify a person rather than a UI string.
+const SECRET_SHAPES = [
+  { re: /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, with: "<e-mail>" },
+  { re: /[A-Za-z]:[\\/][^\s"',;]*/g, with: "<windows-path>" },
+  { re: /(?:file|https?|ws|wss):\/\/[^\s"',;]*/gi, with: "<url>" },
+  { re: /\/(?:Users|home|root)\/[^\s"',;]*/g, with: "<unix-path>" },
+  // long unbroken alphanumerics: ids, tokens, hashes, uuids
+  { re: /\b[A-Za-z0-9_-]{20,}\b/g, with: "<id>" },
+  { re: /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, with: "<uuid>" }
+];
+
+function redact(text) {
+  let out = String(text);
+  let changed = false;
+  for (const s of SECRET_SHAPES) {
+    const next = out.replace(s.re, s.with);
+    if (next !== out) { out = next; changed = true; }
+  }
+  return { text: out, changed };
+}
 
 const COLLECT = `(() => {
   const en = (s) => /[A-Za-z]{3}/.test(s) && !/[\\u4e00-\\u9fa5]/.test(s);
@@ -76,10 +101,14 @@ const SCREENS = [
   ["home.final", null, ["Session", "会话"]]
 ];
 
-async function run(port) {
+async function run(port, opts) {
+  opts = opts || {};
   const results = {};
-  const pages = await cdp.pageTargets(port);
-  if (!pages.length) throw new Error("no Cline page target on port " + port);
+  // Same guard as the injector: this command clicks through the app, so it must only ever talk to a
+  // Cline webview and not whatever else happens to own the port number left in the config.
+  const pages = await cdp.pageTargets(port, opts.origin);
+  if (!pages.length) throw new Error("no Cline page target on port " + port +
+    " (if Cline moved off its usual origin, set it with: ckit config --page-origin=<host>)");
   const ws = await cdp.open(pages[0].webSocketDebuggerUrl);
   const api = cdp.client(ws);
   await api.rpc("Runtime.enable");
@@ -97,26 +126,40 @@ async function run(port) {
   }
   api.close();
 
-  cfg.ensureDirs();
-  const file = path.join(cfg.configDir(), "audit-report.json");
-  fs.writeFileSync(file, JSON.stringify(results, null, 1), "utf8");
-
   // subtract what the dictionary already covers, so the output is only real gaps
   const dict = require("./dict").load(cfg.read());
   const covered = new Set(Object.keys(dict.entries));
   const ruleRes = (dict.rules || []).map((r) => new RegExp(r.pattern));
   const uniq = new Map();
+  let redactedCount = 0;
   for (const [screen, v] of Object.entries(results)) {
     for (const item of [...(v.attr || []), ...(v.text || [])]) {
       const bare = item.replace(/^(title|aria-label|placeholder)::/, "");
       if (covered.has(bare) || ruleRes.some((re) => re.test(bare))) continue;
-      if (!uniq.has(bare)) uniq.set(bare, screen);
+      const safe = opts.raw ? { text: bare, changed: false } : redact(bare);
+      if (safe.changed) redactedCount++;
+      if (!uniq.has(safe.text)) uniq.set(safe.text, screen);
     }
   }
-  return { file, total: uniq.size, items: [...uniq.entries()] };
+
+  cfg.ensureDirs();
+  const file = path.join(cfg.configDir(), "audit-report.json");
+  const report = opts.raw
+    ? results
+    : {
+      "_note": "Redacted: e-mail addresses, file paths, URLs and long identifiers were replaced with " +
+        "placeholders before writing, because this file is meant to be attached to an issue. It still " +
+        "lists on-screen text, which can include session titles and project names - skim it before " +
+        "publishing. Re-run with --raw (local only) to get the unredacted walk.",
+      "_redactedEntries": redactedCount,
+      "screens": results
+    };
+  fs.writeFileSync(file, JSON.stringify(report, null, 1), "utf8");
+
+  return { file, total: uniq.size, redacted: redactedCount, items: [...uniq.entries()] };
 }
 
-module.exports = { run };
+module.exports = { run, redact };
 
 if (require.main === module) {
   const port = Number(process.argv[2] || cfg.read().port);

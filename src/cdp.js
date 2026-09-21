@@ -17,9 +17,24 @@ function listTargets(port) {
   });
 }
 
-function pageTargets(port) {
+// The payload carries the user's install directory and hidden paths, so it must not be handed to
+// whatever happens to be listening on the port number we last used: a stale config plus another
+// Chromium app on that port would mean injecting our code into someone else's window. Only pages
+// served by the Cline webview qualify, and `ckit config --page-origin=` is the escape hatch if
+// Cline ever moves off tauri.localhost.
+const CLINE_PAGE_HOST = "tauri.localhost";
+
+function isClinePage(url, wantHost) {
+  if (!url) return false;
+  const want = wantHost || CLINE_PAGE_HOST;
+  if (want === "*") return true;
+  try { return new URL(url).host === want; }
+  catch (e) { return String(url).indexOf(want) >= 0; }
+}
+
+function pageTargets(port, wantHost) {
   return listTargets(port).then((list) =>
-    list.filter((t) => t.type === "page" && t.webSocketDebuggerUrl));
+    list.filter((t) => t.type === "page" && t.webSocketDebuggerUrl && isClinePage(t.url, wantHost)));
 }
 
 function open(url) {
@@ -64,8 +79,8 @@ function client(ws, timeoutMs) {
 }
 
 // run fn(api) against every page target; returns per-target results
-async function eachPage(port, fn) {
-  const pages = await pageTargets(port);
+async function eachPage(port, fn, wantHost) {
+  const pages = await pageTargets(port, wantHost);
   const out = [];
   for (const p of pages) {
     let api;
@@ -82,4 +97,4 @@ async function eachPage(port, fn) {
   return out;
 }
 
-module.exports = { listTargets, pageTargets, open, client, eachPage };
+module.exports = { pageTargets, open, client, eachPage, isClinePage, CLINE_PAGE_HOST };

@@ -91,7 +91,7 @@ carry an 84 MB runtime. Unzip and run `ckit.cmd install` from that folder.
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .            # or call it directly: node src/cli.js <command>
-npm test                    # 30 checks, no dependencies
+npm test                    # the selftest: dependency-free, all green required
 ```
 
 Then in every case:
@@ -120,10 +120,10 @@ then gives you the enhanced sidebar. If you would rather keep your own launcher,
 | `ckit locales` | List the bundled interface languages |
 | `ckit locales <code>` | Switch language — e.g. `ckit locales ja` (applies within ~4 s, no restart) |
 | `ckit install` / `uninstall` | Repoint / restore your Cline shortcut |
-| `ckit update` | Pull the latest locale dictionary from GitHub (`--force` to check now) |
-| `ckit audit` | Walk the UI and list strings still in English |
+| `ckit update` | Pull the latest locale dictionary from GitHub (`--force` to check now); the injector also does this once a day unless `--auto-update=off` |
+| `ckit audit` | Walk the UI and list strings still in English — writes a redacted report (`--raw` to skip redaction) |
 | `ckit dict` | Dictionary statistics and the local override path |
-| `ckit config` | Inspect or set `--cline-path`, `--port`, `--auto-update=on\|off`, `--dictionary=<code>` |
+| `ckit config` | Inspect or set `--cline-path`, `--port`, `--auto-update=on\|off`, `--dictionary=<code>`, `--hide=<path>`, `--page-origin=<host>` |
 
 ### Choosing a language
 
@@ -165,13 +165,13 @@ The row is added by this kit — Cline has no language setting of its own. Turn 
 * **`language-picker`** (on by default) — the Interface language row inside Cline's own Settings page.
   See [Choosing a language](#choosing-a-language).
 * **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model
-  names, provider names, tool identifiers and code cannot be mangled. The corpus is 476 strings plus
-  30 pattern rules, built by combining a UI walk with extraction from the app's own source. Five
-  dictionaries ship: **zh-CN** (reference, proofread against the running app), **zh-TW**, **ja**,
-  **ko**, **vi** - complete but machine-assisted and *not* reviewed by native speakers, so a pull
-  request fixing a term is genuinely welcome. Choose one in Cline's Settings, or with
-  `ckit locales` — see [Choosing a language](#choosing-a-language). Terminology was cross-checked against
-  professional human localizations and the deliberate differences are listed in
+  names, provider names, tool identifiers and code cannot be mangled. The corpus is 476 strings,
+  24 anchored pattern rules and 6 prefix rules, built by combining a UI walk with extraction from the
+  app's own source. Five dictionaries ship: **zh-CN** (reference, proofread against the running app),
+  **zh-TW**, **ja**, **ko**, **vi** - complete but machine-assisted and *not* reviewed by native
+  speakers, so a pull request fixing a term is genuinely welcome. Choose one in Cline's Settings, or
+  with `ckit locales` — see [Choosing a language](#choosing-a-language). Terminology was cross-checked
+  against professional human localizations and the deliberate differences are listed in
   [`docs/terminology.md`](docs/terminology.md); authoring guide:
   [`docs/dictionary-pipeline.zh-CN.md`](docs/dictionary-pipeline.zh-CN.md).
 
@@ -185,7 +185,9 @@ The row is added by this kit — Cline has no language setting of its own. Turn 
 * **Launch through the kit.** Opening `cline-app.exe` directly (or via a shortcut that was never
   repointed) has no debug port to attach to, so you get plain Cline.
 * **Cline updates can break things.** If the app renames a label, the locale leaves it in English; if
-  it restructures the sidebar, `sidebar-groups` needs updating. Run `ckit audit` and open an issue.
+  it restructures the sidebar, `sidebar-groups` needs updating. `ckit doctor` says which feature has
+  stopped appearing, and `ckit audit` writes a redacted list of the strings that fell behind — that
+  file is safe to attach to an issue (check it yourself if you ran with `--raw`).
 * **The language row is ours, not Cline's.** It is inserted into the Settings page next to Dark mode,
   which is the right place to look but not a location Cline documents. If that page is restructured,
   `language-picker` needs its anchor updated (`ckit doctor` reports whether the row is present);
@@ -201,8 +203,11 @@ The row is added by this kit — Cline has no language setting of its own. Turn 
 
 `ckit start` opens a DevTools port on `127.0.0.1` for as long as Cline runs; any process running as
 you can drive the Cline UI through it. The port is random per session, loopback-only, and never set as
-a system-wide environment variable. Remote dictionaries are validated (shape, size, anchored regexes)
-and rejected outright if malformed. Details in [SECURITY.md](SECURITY.md).
+a system-wide environment variable, and code is only ever sent to pages served by Cline's own webview
+origin. Remote dictionaries are validated (shape, size, anchored regexes) and each pattern is *timed*
+against long inputs before it is allowed to run, so a bad file cannot hang the window; malformed ones
+are rejected outright. The only outbound request is the once-a-day dictionary check
+(`ckit config --auto-update=off` removes it). Details in [SECURITY.md](SECURITY.md).
 
 ## Uninstall
 
@@ -223,9 +228,11 @@ is the sidebar/project behaviour, plus the packaging (reversible installer, path
 random port, feature toggles, `ckit audit`). Design credit is recorded in [NOTICE](NOTICE).
 
 The better long-term outcome is upstream: an official language setting, and a sidebar that lists all
-registered projects. See [`docs/upstream-i18n.md`](docs/upstream-i18n.md) for the threads we have
-engaged on ([#12518](https://github.com/cline/cline/issues/12518),
-[#13811](https://github.com/cline/cline/pull/13811)).
+registered projects. We opened [`cline/cline#14337`](https://github.com/cline/cline/pull/14337) with
+exactly that desktop language setting, and have engaged on
+[#12518](https://github.com/cline/cline/issues/12518) and
+[#13811](https://github.com/cline/cline/pull/13811). See
+[`docs/upstream-i18n.md`](docs/upstream-i18n.md) for the whole picture.
 
 ## License
 

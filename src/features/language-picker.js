@@ -3,12 +3,15 @@
 // so this adds a row that looks like the neighbours it sits between (same structure as the Dark mode
 // and App icon rows) and lists the dictionaries that ship with the kit, plus "English" to opt out.
 //
-// Clicking does not translate the page from inside the page - the payload is composed in Node. The
-// click stores one pending intent in localStorage; the resident injector consumes it on its next
-// cycle (<= 4 s), writes `dictionary` into %APPDATA%\cline-kit\config.json, and re-injects. The
-// engine then re-translates from the original text, so no reload happens and the choice survives a
-// restart. Because the injector clears the key after consuming it, `ckit locales <code>` from the
-// terminal stays authoritative instead of being overwritten by a stale click.
+// Clicking does two things, in that order. First it calls window.__ckitSetLocale(code), which is the
+// engine's own switch: every locale ships inside the payload, so the whole window changes on the
+// spot with no reload and no dependency on a background process. Then it stores one pending intent in
+// localStorage so the choice is *persisted*: the resident injector consumes it on its next cycle
+// (<= 4 s) and writes `dictionary` into %APPDATA%\cline-kit\config.json, which is what makes the
+// language survive a restart. The engine re-translates from the original text it remembers per node,
+// so nothing reloads. Because the injector clears the key after consuming it, `ckit locales <code>`
+// from the terminal stays authoritative instead of being overwritten by a stale click. If the page
+// changes instantly but the injector never confirms, the row says so instead of failing silently.
 //
 // Runs inside the webview. Config arrives as window.__clineKitFeature["language-picker"].
 (function () {

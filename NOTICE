@@ -11,7 +11,7 @@ application this tool patches at runtime.
 
 ## What is under MIT
 
-All source code in `src/` and `scripts/`, all documentation, and the `zh-CN` translation content in
+All source code in `src/` and `scripts/`, all documentation, and the translation content in
 `dictionaries/` are original work of this project's authors and are licensed under the MIT License
 (see `LICENSE`).
 

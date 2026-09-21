@@ -103,13 +103,16 @@
 
   function norm(s) { return String(s || "").replace(/\s+/g, " ").trim(); }
 
-  // The kit's own controls (the in-app language row) are already rendered in the language the user
-  // picked, and translating them would let the observer chase its own output. The check is memoised
-  // on the node because this runs for every text node on every mutation.
+  // Anything the kit itself injected is off-limits: the language row is already rendered in the
+  // language the user picked, and the sidebar rows carry **project folder names**, which are user
+  // content and must never be replaced. Translating either also lets the observer chase its own
+  // output. The check is memoised on the node because this runs for every text node on every
+  // mutation; the flag is re-checked when a node's own marker changes.
+  var KIT_UI_SELECTOR = "[data-ckit-ui], [data-ckit-feat]";
   function isKitUI(el) {
     if (!el || el.nodeType !== 1) return false;
     if (el.__ckitOwn == null) {
-      try { el.__ckitOwn = el.closest && el.closest("[data-ckit-ui]") ? 1 : 0; }
+      try { el.__ckitOwn = el.closest && el.closest(KIT_UI_SELECTOR) ? 1 : 0; }
       catch (e) { el.__ckitOwn = 0; }
     }
     return el.__ckitOwn === 1;
@@ -134,7 +137,13 @@
     var lead = raw.match(/^\s*/)[0];
     var trail = raw.match(/\s*$/)[0];
     if (!rep || rep === src) {
-      if (node.__ckitSrc != null) { node.nodeValue = lead + node.__ckitSrc + trail; node.__ckitSrc = null; node.__ckitOut = null; STATS.restored++; }
+      // Roll back only a node that still carries **our** output. Once the app has written new text
+      // there, that text is current, and restoring the English we remembered would put stale
+      // content on screen (a re-labelled button flipping back mid-session).
+      if (node.__ckitSrc != null) {
+        if (norm(raw) === norm(node.__ckitOut)) { node.nodeValue = lead + node.__ckitSrc + trail; STATS.restored++; }
+        node.__ckitSrc = null; node.__ckitOut = null;
+      }
       return;
     }
     node.__ckitSrc = src;
@@ -156,7 +165,11 @@
       var src = keep[a] != null && norm(v) === norm(keep[a].out) ? keep[a].src : v;
       var rep = lookup(norm(src));
       if (!rep || rep === src) {
-        if (keep[a]) { el.setAttribute(a, keep[a].src); delete keep[a]; STATS.restored++; }
+        // Same rule as text: only undo an attribute we still own.
+        if (keep[a]) {
+          if (norm(v) === norm(keep[a].out)) { el.setAttribute(a, keep[a].src); STATS.restored++; }
+          delete keep[a];
+        }
         continue;
       }
       keep[a] = { src: src, out: rep };
@@ -206,6 +219,5 @@
   // safety net for portals/menus mounted outside the observed subtree
   window.__ckitTimer = setInterval(function () { scan(document.documentElement); }, 1200);
 
-  window.__zhUIStats = { version: VER, entries: Object.keys(ACTIVE.entries).length };
   try { console.log("[cline-kit] overlay v" + VER + " loaded (" + Object.keys(ACTIVE.entries).length + " entries, " + window.__ckitLocales().length + " locales)"); } catch (e) { }
 })();

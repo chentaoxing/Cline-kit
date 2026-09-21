@@ -27,11 +27,12 @@ Usage: ckit <command> [options]
   features         List feature plugins and whether each is on
   feature          Toggle a plugin: ckit feature enable|disable <id>
   locales          List the UI languages that ship with the kit, and switch between them
-  update           Fetch the latest locale dictionary from GitHub (skipped when offline)
-  audit            Walk the UI and list strings still without a translation
+  update           Fetch the latest locale dictionary from GitHub (the injector also checks
+                   once a day; ckit config --auto-update=off stops all outbound requests)
+  audit            Walk the UI and list strings still without a translation (--raw to not redact)
   dict             Dictionary stats and the local override file path
   config           View or set: --cline-path=... --port=... --auto-update=on|off
-                   --dictionary=<locale> --hide=<path> / --unhide=<path>
+                   --dictionary=<locale> --hide=<path> / --unhide=<path> --page-origin=<host>
 
 Main feature
   sidebar-groups   Keeps every registered project visible in the sidebar's "Projects" group.
@@ -68,6 +69,15 @@ function parseFlags(argv) {
     else rest.push(a);
   }
   return { flags, rest };
+}
+
+// Tri-state on purpose: `--auto-update=FALSE` should not quietly turn the updater on, and neither
+// should a typo. Returns null when the value is not a yes/no at all.
+function parseBool(v) {
+  const s = String(v).trim().toLowerCase();
+  if (["on", "true", "1", "yes", "y"].includes(s)) return true;
+  if (["off", "false", "0", "no", "n"].includes(s)) return false;
+  return null;
 }
 
 // CJK and accented names are not one cell per code unit, and `padEnd` does not know that.
@@ -115,6 +125,12 @@ async function main() {
     console.log(out.debugPortAlive
       ? `Cline is up (port ${out.port}, path from ${out.source}) and the overlay is loaded.`
       : `Warning: Cline started but port ${out.port} is not answering; the overlay may not be loaded.`);
+    // Reaping processes has to be said out loud: a killed sidecar can be a session the user thought
+    // they still had, even though it is exactly what frees Cline's hub for the new window.
+    if (out.reapedSidecars && out.reapedSidecars.length) {
+      console.log(`Reaped ${out.reapedSidecars.length} orphaned code-sidecar process(es) ` +
+        `(${out.reapedSidecars.join(", ")}) that were still holding Cline's hub port.`);
+    }
     if (out.debugPortAlive) languageTip(conf, true);
     if (!out.debugPortAlive) process.exitCode = 1;
     return;
@@ -159,10 +175,15 @@ async function main() {
       const res = await api.rpc("Runtime.evaluate", { expression: src });
       if (res && res.exceptionDetails) throw new Error(res.exceptionDetails.text || "evaluate failed");
       return "ok";
-    });
-    console.log("Injected once into " + r.length + " page(s): " +
-      r.map((x) => x.error ? "FAIL " + x.error : x.result).join(", "));
-    console.log("The resident injector is not running, so a reload (Ctrl+R) drops the overlay.");
+    }, conf.pageOrigin);
+    const ok = r.filter((x) => !x.error);
+    const bad = r.filter((x) => x.error);
+    console.log("Injected once into " + ok.length + " of " + r.length + " page(s)" +
+      (bad.length ? ": " + bad.map((x) => "FAIL " + x.error).join(", ") : ""));
+    if (!r.length) console.log("No Cline page answered on port " + port +
+      ". Check the port, or set the webview host with: ckit config --page-origin=<host>");
+    if (r.length) console.log("The resident injector is not running, so a reload (Ctrl+R) drops the overlay.");
+    if (!ok.length) process.exitCode = 1;
     return;
   }
 
@@ -200,16 +221,32 @@ async function main() {
   if (cmd === "update") {
     const r = await require("./dict").update(cfg.read(), { force: !!flags.force });
     if (r.error) { console.error("Update failed (keeping the local dictionary): " + r.error); process.exitCode = 1; return; }
-    console.log(r.updated ? `Dictionary updated: v${r.from} -> v${r.to}` : "Already up to date" + (r.reason ? " (" + r.reason + ")" : ""));
+    if (r.updated) { console.log(`Dictionary updated: v${r.from} -> v${r.to}`); return; }
+    // "Already up to date" is only true if something was fetched. Saying it after a skipped check
+    // is how a broken update url survives for years.
+    if (r.reason === "already current") { console.log(`Already up to date (remote is v${r.to})`); return; }
+    const hints = {
+      "autoUpdate disabled": "re-enable with: ckit config --auto-update=on  (or run ckit update --force)",
+      "translation is off": "pick a language first: ckit locales zh-CN, or Settings -> Interface language in Cline",
+      "not due yet": "the last check is under a day old; use ckit update --force to check now",
+      "no update url configured": "set one with: ckit config --update-url=<url>"
+    };
+    console.log("Not checked" + (r.reason ? ": " + r.reason : "") +
+      (hints[r.reason] ? "\n  " + hints[r.reason] : ""));
     return;
   }
 
   if (cmd === "audit") {
     if (!conf.port) { console.error("Cline was not started through cline-kit; run ckit start first"); process.exit(1); }
-    const r = await require("./audit").run(conf.port);
+    const r = await require("./audit").run(conf.port, { raw: !!flags.raw, origin: conf.pageOrigin });
+    const limit = Number(flags.limit) || 80;
     console.log(`${r.total} untranslated strings, details: ${r.file}`);
-    r.items.slice(0, Number(flags.limit) || 80).forEach(([s, where]) => console.log("  " + s + "   [" + where + "]"));
-    if (r.total > (Number(flags.limit) || 80)) console.log("  ...");
+    if (!flags.raw) {
+      console.log("E-mails, paths, URLs and identifiers were redacted (" + r.redacted +
+        " entries). Use --raw only on your own machine, and skim before publishing.");
+    }
+    r.items.slice(0, limit).forEach(([s, where]) => console.log("  " + s + "   [" + where + "]"));
+    if (r.total > limit) console.log("  ...");
     return;
   }
 
@@ -285,9 +322,19 @@ async function main() {
     let changed = false;
     if (flags["cline-path"]) { conf.clinePath = flags["cline-path"]; changed = true; }
     if (flags.port) { conf.port = Number(flags.port); changed = true; }
-    if (flags["auto-update"]) { conf.autoUpdate = String(flags["auto-update"]) !== "off"; changed = true; }
+    if (flags["auto-update"] !== undefined) {
+      // a bare --auto-update reads as "turn it on"
+      const on = flags["auto-update"] === true ? true : parseBool(flags["auto-update"]);
+      if (on === null) {
+        console.error(`--auto-update wants on or off, got "${flags["auto-update"]}"`);
+        process.exitCode = 1;
+        return;
+      }
+      conf.autoUpdate = on; changed = true;
+    }
     if (flags["update-url"]) { conf.updateUrl = flags["update-url"]; changed = true; }
     if (flags["storage-key"] !== undefined) { conf.storageKey = String(flags["storage-key"]); changed = true; }
+    if (flags["page-origin"] !== undefined) { conf.pageOrigin = String(flags["page-origin"]); changed = true; }
     if (flags.dictionary) {
       const want = flags.dictionary;
       const dict = require("./dict");

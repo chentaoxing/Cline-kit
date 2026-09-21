@@ -1,13 +1,18 @@
 # Upstream i18n status
 
-What we asked Cline for, and where it stands. Last updated 2026-09-20.
+What we asked Cline for, what we built ourselves, and where it stands. Last updated 2026-09-21.
 
 ## Existing upstream threads (do not file duplicates)
 
 | Thread | Scope | State |
 | --- | --- | --- |
-| [#12518 — [Feature Request] 添加中文界面支持 / Add Chinese (Simplified) Language Support](https://github.com/cline/cline/issues/12518) | Chinese UI overall; two community comments already ask for **Cline Desktop** coverage | open, created 2026-07-24 |
-| [#13811 — Localize the VS Code extension (en, 简体中文, Español, Русский, 한국어)](https://github.com/cline/cline/pull/13811) | **VS Code extension only.** Adds `@cline/i18n` (i18next + JSON catalogues, 18 namespaces, ~1,258 keys × 5 locales), a `Display Language` setting, and `bun run translate -- --lang <locale>` | open, not draft, updated 2026-09-16 |
+| [#12518 — [Feature Request] 添加中文界面支持 / Add Chinese (Simplified) Language Support](https://github.com/cline/cline/issues/12518) | Chinese UI overall; community comments ask for **Cline Desktop** coverage | open, 7 comments, last activity 2026-09-20 |
+| [#13811 — Localize the VS Code extension (en, 简体中文, Español, Русский, 한국어)](https://github.com/cline/cline/pull/13811) | **VS Code extension only.** Adds `@cline/i18n` (i18next + JSON catalogues, 18 namespaces, ~1,258 keys × 5 locales), a `Display Language` setting, and `bun run translate -- --lang <locale>` | open, **`CONFLICTING` against main** as of 2026-09-21; `@cline/i18n` is therefore not merged and nothing can build on it |
+| [#14337 — feat(desktop): add an interface-language setting to the desktop app](https://github.com/cline/cline/pull/14337) | **Desktop app, self-contained.** i18n foundation inside `apps/examples/desktop-app/webview` + a Language row in its own Settings + 5 locale catalogues (476 strings each) as data | ours, open as a draft, `MERGEABLE`, no review yet |
+
+We stopped waiting on #13811. It conflicts with `main` today and the desktop app has no i18n
+dependency at all, so #14337 deliberately depends on nothing outside `apps/examples/desktop-app`. If
+`@cline/i18n` lands first, that PR collapses into a thin adapter over it - the description says so.
 
 ## Key structural finding (corrected 2026-09-20)
 
@@ -20,8 +25,10 @@ An earlier version of this document claimed the desktop app was not in the repos
 at the top level of `apps/`). That was wrong and we posted corrections on both upstream threads.
 
 Consequence for strategy: because the desktop UI source is open and React-based, the highest-value
-contribution is **porting #13811's `@cline/i18n` into the desktop webview**, not growing another overlay
-corpus. Overlay work remains useful as the interim and as the carrier for non-translation features.
+contribution is **an i18n foundation inside the desktop webview**, not growing another overlay corpus.
+That is what #14337 does. The overlay stays useful as the interim for anyone who cannot wait for a
+release, and as the carrier for features upstream has no reason to build - the always-visible project
+groups in the sidebar being the main one.
 
 ## Community tools doing desktop Chinese localisation (surveyed 2026-09-20)
 
@@ -29,7 +36,7 @@ corpus. Overlay work remains useful as the interim and as the carrier for non-tr
 | --- | --- | --- | --- | --- |
 | `JACK5920/cline-desktop-zh` | 09-15 / 09-16 | ≈531 (418 texts, 94 attrs, 12+5 patterns, 2 whole-element) | DOM injection + silent vbs launcher | MIT |
 | `ExSchwi/cline-desktop-zh-cn` | 09-17 / 09-19 | 545 entries + 98 explicitly skipped | DOM injection + **per-Cline-version rule files** (`0.0.30`, `0.0.32`) with a documented fallback strategy, generated dictionary | Apache-2.0 (NOTICE: derived from upstream source) |
-| this project | 09-20 | ≈373 (343 entries, 6 prefixes, 24 rules) | DOM injection + reversible installer, path autodetection, random loopback port, validated remote dictionary, `audit` | MIT |
+| this project | 09-20 → 09-21 | 476 whole-string entries + 6 prefixes + 24 rules, in **5 locales** (zh-CN reference, zh-TW, ja, ko, vi) | DOM injection + reversible installer covering every launch path, path autodetection, random loopback port, validated per-locale remote updates (regexes timed, not just shaped), an in-app language picker, `ckit doctor`, and a dependency-free selftest | MIT |
 
 All three are permissively licensed, so approaches can be studied and reused with attribution. Note that
 ExSchwi's dictionary is derived from upstream (Apache-2.0) source, so reusing its *content* requires
@@ -63,22 +70,24 @@ have split the discussion.
 
 ## Corpus on offer
 
-`dictionaries/zh-CN.json` — 343 whole-string entries + 6 prefix rules + 24 pattern rules, produced by
+`dictionaries/zh-CN.json` — 476 whole-string entries + 6 prefix rules + 24 pattern rules, produced by
 enumerating the rendered DOM of every desktop screen (sidebar, composer, search palette,
-workspace/folder picker, model + provider selectors, schedule page, customize page including the 11
-built-in tool descriptions, and all six settings sub-pages). It is MIT-licensed and can be relicensed
-to match Cline's Apache-2.0 for upstreaming.
+workspace/folder picker, model + provider selectors, schedule page, customize page including the built-in
+tool descriptions, and all settings sub-pages), then merged with keys extracted from the app's own source.
+`zh-TW`, `ja`, `ko` and `vi` carry the identical key set; their terminology was cross-checked against
+professional human localizations (see [`terminology.md`](terminology.md)) but none of the four has been
+read by a native speaker. It is MIT-licensed and can be relicensed to match Cline's Apache-2.0 for
+upstreaming - #14337 already ships it as data.
 
-## Next actions
+## Where this stands now
 
-* Open the upstream PR that wires `@cline/i18n` into `apps/examples/desktop-app/webview`, with a
-  `Display Language` control in desktop Settings → General. This is the single highest-leverage move
-  available and it makes the overlay's translation half obsolete.
-* Keep the overlay as (a) the interim for users who cannot wait for a release, and (b) the carrier for
-  non-translation features such as always-visible project groups in the sidebar.
-* Adopt per-Cline-version rule files (the approach `ExSchwi` uses) so a broken dictionary degrades to the
-  nearest verified version instead of failing silently.
-* Treat extra locales as a pipeline, not a workload: extract keys from source, emit a translation
-  template, validate, archive per version. Ship `zh-CN` + `zh-TW` as proof; let `ja` / `ko` / `vi` come
-  from contributors or upstream.
-* Re-run `ckit audit` after each Cline release and keep the corpus current until upstream wins.
+* The desktop port is **open as our own PR** (#14337) rather than blocked behind #13811.
+* Extra locales are **already shipped** (five), as a pipeline rather than a workload -
+  `scripts/new-locale.js` → translate → `apply-locale.js` → `npm test` → `locale-switch-check.js`.
+* Still not done, still worth doing:
+  - Adopt per-Cline-version rule files (the approach `ExSchwi` uses) so a broken dictionary degrades to
+    the nearest verified version instead of failing silently. `ckit audit` catches the diff today, but
+    only after someone runs it.
+  - Re-run `ckit audit` after each Cline release and keep the corpus current until upstream wins.
+  - Get #14337 out of draft only once their CI has actually run it - it has not been built or rendered
+    in a real window by anyone yet, which the PR description states.

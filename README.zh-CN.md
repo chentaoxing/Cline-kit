@@ -82,7 +82,7 @@ ckit start                  # 立刻带增强功能启动 Cline
 git clone https://github.com/chentaoxing/Cline-kit.git
 cd cline-kit
 npm install -g .        # 或直接用：node src/cli.js <命令>
-npm test                # 30 项无依赖自检
+npm test                # 无依赖自检，必须全绿
 ```
 
 装完统一确认一次：
@@ -110,10 +110,10 @@ ckit locales            # 可选：看有哪些语言、换语言
 | `ckit locales` | 列出随包发行的界面语言、字符串数与当前语言 |
 | `ckit locales <语言>` | 切换语言，如 `ckit locales ja`（约 4 秒生效，无需重启） |
 | `ckit install` / `uninstall` | 改写 / 还原 Cline 快捷方式 |
-| `ckit update` | 从 GitHub 拉取最新语言词典（`--force` 立即检查） |
-| `ckit audit` | 走查界面，列出仍是英文的字符串 |
+| `ckit update` | 从 GitHub 拉取最新语言词典（`--force` 立即检查）；注入器默认每天自己查一次，`--auto-update=off` 可关 |
+| `ckit audit` | 走查界面，列出仍是英文的字符串，写一份**脱敏**报告（`--raw` 不脱敏） |
 | `ckit dict` | 词典统计与本地覆盖文件路径 |
-| `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off`、`--dictionary=<语言>`、`--hide=<路径>` |
+| `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off`、`--dictionary=<语言>`、`--hide=<路径>`、`--page-origin=<主机>` |
 
 ### 选择语言
 
@@ -147,7 +147,8 @@ ckit locales none     # 不再替换 Cline 自己的文案
 * **`language-picker`**（默认开启）——在 Cline 自己的设置页里加一行「界面语言」，见
   [选择语言](#选择语言)。
 * **语言包**（`dictionaries/<locale>.json`）——只做**整串精确匹配**替换，因此不会误伤模型名、服务商名、
-  工具标识和代码。语料为 476 条词条 + 30 条规则，来源是「界面走查 + 从应用自身源码提取」两路合并。
+  工具标识和代码。语料为 476 条词条、24 条锚定正则规则、6 条前缀规则，来源是「界面走查 + 从应用自身
+  源码提取」两路合并。
   现在随包附带 5 份词典：**zh-CN**（基准，逐条对着运行中的界面校对过）、**zh-TW**、**ja**、**ko**、
   **vi** —— 后四份条目齐全但属于机器辅助翻译、未经母语者审校，术语有偏差欢迎提 PR 直接改。
   切换：Cline 设置页的「界面语言」，或 `ckit locales ja`，正在打开的窗口**不需要重启或刷新**就会跟着变；
@@ -163,7 +164,8 @@ ckit locales none     # 不再替换 Cline 自己的文案
 * **必须经由增强层启动。** 直接双击 `cline-app.exe`（或用没被改写的快捷方式）没有可注入的调试端口，
   得到的是原版界面。
 * **Cline 升级可能失效。** 文案改了，语言包会留英文；侧边栏结构改了，`sidebar-groups` 需要跟进。
-  跑一次 `ckit audit` 并开 issue。
+  `ckit doctor` 会指出是哪个插件不再出现，`ckit audit` 会写出一份已脱敏的漏翻清单——那个文件可以直接
+  贴到 issue 里（用了 `--raw` 的话自己先过一遍）。
 * **语言那一行是本项目加的，不是 Cline 原生的。** 它插在设置页「深色模式」下面——位置符合直觉，
   但那个位置并不是 Cline 公开约定的。那一页改版时需要更新 `language-picker` 的锚点
   （`ckit doctor` 会报这一行在不在），不想要就 `ckit feature disable language-picker`。
@@ -176,8 +178,10 @@ ckit locales none     # 不再替换 Cline 自己的文案
 ## 安全说明
 
 `ckit start` 会在 Cline 运行期间于 `127.0.0.1` 开一个 DevTools 端口，本机以你身份运行的任意进程都能
-通过它操作 Cline 界面。端口每次启动随机、只绑定回环地址、不写成系统级环境变量。远端词典会做校验
-（结构、规模、正则必须锚定），不合规直接拒绝。详见 [SECURITY.md](SECURITY.md)。
+通过它操作 Cline 界面。端口每次启动随机、只绑定回环地址、不写成系统级环境变量，而且代码只会发给
+Cline 自己那个 webview 来源的页面。远端词典会做校验（结构、规模、正则必须锚定），每条规则还会拿
+长输入**实测**一遍耗时，防止一份坏词典把界面卡死；不合规直接拒绝。唯一的对外请求是每天一次的词典
+检查，`ckit config --auto-update=off` 可以彻底关掉。详见 [SECURITY.md](SECURITY.md)。
 
 ## 卸载
 
@@ -195,7 +199,8 @@ npm uninstall -g cline-kit
 是 **VS Code 插件**的分叉，属于另一个界面。本项目与它们的交集只在语言包上——存在理由是侧边栏/项目行为，
 加上工程化部分（可逆安装、路径自动探测、随机端口、插件开关、`ckit audit`）。思路致谢记录在 [NOTICE](NOTICE)。
 
-更好的长期结果是官方支持：一个语言设置，以及一个列出全部已登记项目的侧边栏。我们已在
+更好的长期结果是官方支持：一个语言设置，以及一个列出全部已登记项目的侧边栏。我们已经提交了
+[`cline/cline#14337`](https://github.com/cline/cline/pull/14337)（桌面版的语言设置本身），并在
 [#12518](https://github.com/cline/cline/issues/12518) 与 [#13811](https://github.com/cline/cline/pull/13811)
 发言，脉络见 [`docs/upstream-i18n.md`](docs/upstream-i18n.md)。
 

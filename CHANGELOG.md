@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [Unreleased]
+
+### Fixed
+
+- **`ckit start --restart` no longer leaves Cline's hub behind.** The restart killed `cline-app.exe`
+  only, while the hub is a `code-sidecar.exe` bound to `127.0.0.1:25463` and that port number is a
+  constant inside Cline: the next window attaches to whatever is already listening there. On the
+  machine this was written on, that meant a 27-hour-old hub answering for a freshly opened window,
+  with nine sidecars from previous sessions still holding their hub sockets - the state Cline reports
+  in the UI as `Hub connection closed (code=1006)`. `killCline()` now takes both images down, and a
+  launch that finds orphaned sidecars reaps them and waits for the hub port to come free before it
+  starts a window.
+- Side note from the same investigation: an orphan sidecar is *not* what stalls a chat. Eight
+  consecutive session starts hung across four different sidecar processes, and the ninth worked in
+  1.3 s on the same hub after switching model.
+
+### Added
+
+- `ckit doctor` reports the live hub: which process owns `:25463`, how long it has been up, and how
+  many sidecars have outlived the window that started them.
+
 ## [0.4.2] - 2026-09-21
 
 ### Fixed

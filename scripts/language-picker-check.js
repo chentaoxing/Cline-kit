@@ -179,7 +179,7 @@ async function main() {
   const reRow = (await evalAll(conf.port, READ_ROW)).filter(Boolean).map((s) => JSON.parse(s)).find((r) => r.row);
   if (restored !== original) throw new Error("restore did not stick (config says " + restored + ")");
   console.log("  restored       : " + restored + ", row title " + (reRow ? reRow.title : "?"));
-  console.log(await evalAll(conf.port, CLOSE_SETTINGS));
+  console.log("  settings page  : " + await evalAll(conf.port, CLOSE_SETTINGS));
   console.log("in-app language row works: clicked " + target + ", the window followed, and it went back");
 }
 

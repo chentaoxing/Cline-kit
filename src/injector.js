@@ -20,23 +20,29 @@ const PENDING_KEY = "cline-kit.language-pending";
 const CONSUME = "(function(){try{var k=" + JSON.stringify(PENDING_KEY) +
   ";var v=localStorage.getItem(k);if(v)localStorage.removeItem(k);return v||\"\"}catch(e){return\"\"}})()";
 
-async function consumeLanguageIntent(port) {
+async function consumeLanguageIntent(port, origin) {
   let wanted = "";
   const results = await cdp.eachPage(port, async (api) => {
     const r = await api.rpc("Runtime.evaluate", { expression: CONSUME, returnByValue: true });
     if (r && r.exceptionDetails) return "";
     return r && r.result && typeof r.result.value === "string" ? r.result.value : "";
-  });
+  }, origin);
   for (const item of results) if (item && !item.error && item.result) wanted = item.result;
   return wanted;
 }
 
 // Surface injection failures instead of swallowing them; a silent no-op is the worst outcome.
+// Everything describing a page goes through oneline(): target ids, dictionary names and exception
+// text all originate outside this process, and an embedded newline would forge a log entry.
+function oneline(v, max) {
+  return String(v == null ? "" : v).replace(/[^\x20-\x7e]/g, " ").slice(0, max || 200);
+}
+
 function log(msg) {
   try {
     cfg.ensureDirs();
     fs.appendFileSync(path.join(cfg.logDir(), "injector.log"),
-      new Date().toISOString() + " " + msg + "\n");
+      new Date().toISOString() + " " + oneline(msg, 500) + "\n");
   } catch (e) { /* never fail the loop over logging */ }
 }
 
@@ -50,7 +56,7 @@ function clineRunning() {
   }
 }
 
-async function installOnce(port, source, version, pageBuild) {
+async function installOnce(port, source, version, pageBuild, origin) {
   const results = await cdp.eachPage(port, async (api, target) => {
     await api.rpc("Runtime.enable");
     await api.rpc("Page.enable");
@@ -63,9 +69,9 @@ async function installOnce(port, source, version, pageBuild) {
       const r = await api.rpc("Page.addScriptToEvaluateOnNewDocument", { source });
       registered.set(target.id, { scriptId: r.identifier, dictVersion: version });
     }
-    // The payload now carries every locale, so it is ~110 KB rather than ~59 KB. Ask the page what it
-    // is already running before re-sending it: an idle window should not pay to parse the whole
-    // dictionary set every four seconds.
+    // The payload now carries all five locales, so it is well over 100 KB rather than the ~59 KB a
+    // single dictionary was. Ask the page what it is already running before re-sending it: an idle
+    // window should not pay to parse the whole dictionary set every four seconds.
     if (pageBuild && current) {
       let build = "";
       try {
@@ -80,7 +86,12 @@ async function installOnce(port, source, version, pageBuild) {
       log("evaluate error on " + target.id + ": " + (ex.description || ex.value || r.exceptionDetails.text));
     }
     return true;
-  });
+  }, origin);
+  // A page target keeps its id across reloads, so anything missing from this round trip has
+  // really closed. Dropping its entry stops the map from growing for the life of the injector,
+  // and keeps a reused id from being treated as already installed.
+  const seen = new Set(results.map((x) => x.target && x.target.id).filter(Boolean));
+  for (const id of Array.from(registered.keys())) if (!seen.has(id)) registered.delete(id);
   return results;
 }
 
@@ -111,7 +122,7 @@ async function main() {
       // re-read every cycle so feature toggles, dictionary updates and path changes apply live
       const conf = cfg.read();
       try {
-        const wanted = await consumeLanguageIntent(conf.port || port);
+        const wanted = await consumeLanguageIntent(conf.port || port, conf.pageOrigin);
         if (wanted && dict.isKnown(wanted) && wanted !== conf.dictionary) {
           conf.dictionary = wanted;
           cfg.write(conf);
@@ -121,7 +132,7 @@ async function main() {
         }
       } catch (e) { log("language intent failed: " + e.message); }
       const composed = payload.compose(conf);
-      await installOnce(conf.port || port, composed.source, composed.version, composed.pageBuild);
+      await installOnce(conf.port || port, composed.source, composed.version, composed.pageBuild, conf.pageOrigin);
       writeActiveVersion(composed.version);
       gone = 0;
     } catch (e) {
@@ -130,6 +141,18 @@ async function main() {
         return;
       }
     }
+    // autoUpdate means what it says: one throttled dictionary fetch a day, done here because the
+    // injector is the only long-lived process. dict.update() returns instantly (no network) until
+    // it is due, and `ckit config --auto-update=off` turns it off. The cache file it writes outranks
+    // the bundled one on the next compose, so the window updates without a restart.
+    //
+    // Deliberately outside the block above: a stale debug port must not also stop us from checking
+    // for a newer dictionary.
+    try {
+      const upd = await dict.update(cfg.read(), {});
+      if (upd.updated) log("dictionary updated v" + upd.from + " -> v" + upd.to);
+      else if (upd.error) log("dictionary update failed: " + upd.error);
+    } catch (e) { log("dictionary update failed: " + e.message); }
     await new Promise((r) => setTimeout(r, INTERVAL_MS));
   }
 }

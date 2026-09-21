@@ -13,6 +13,7 @@ const L = require("../src/features/sidebar-groups.logic.js");
 const features = require("../src/features");
 const dict = require("../src/dict");
 const payload = require("../src/payload");
+const launcher = require("../src/launcher");
 
 let passed = 0;
 const failures = [];
@@ -34,14 +35,14 @@ test("norm collapses every kind of whitespace", () => {
 });
 
 test("base / parent handle Windows, POSIX and trailing separators", () => {
-  assert.strictEqual(L.base("E:\\Agent\\Date\\Cline\\workspace\\APP开发"), "APP开发");
+  assert.strictEqual(L.base("Q:\\dev\\projects\\APP开发"), "APP开发");
   assert.strictEqual(L.base("/home/me/proj/"), "proj");
   assert.strictEqual(L.base("Cline"), "Cline");
   assert.strictEqual(L.base(""), "");
-  assert.strictEqual(L.parent("E:\\a\\b\\c"), "b");
+  assert.strictEqual(L.parent("Q:\\a\\b\\c"), "b");
   assert.strictEqual(L.parent("/a/b/c"), "b");
   assert.strictEqual(L.parent("solo"), "");
-  assert.strictEqual(L.strip("E:\\a\\b\\\\"), "E:\\a\\b");
+  assert.strictEqual(L.strip("Q:\\a\\b\\\\"), "Q:\\a\\b");
 });
 
 test("samePath ignores case and trailing slashes", () => {
@@ -51,9 +52,9 @@ test("samePath ignores case and trailing slashes", () => {
 
 // ---------------------------------------------------------------- containers
 const ALL = [
-  "E:\\Agent\\Date\\Cline\\workspace",
-  "E:\\Agent\\Date\\Cline\\workspace\\LLM",
-  "E:\\Agent\\Date\\Cline\\workspace\\爬虫",
+  "Q:\\dev\\projects",
+  "Q:\\dev\\projects\\LLM",
+  "Q:\\dev\\projects\\爬虫",
   "D:\\Projects\\solo"
 ];
 test("a path that contains other registered paths is a container", () => {
@@ -63,10 +64,10 @@ test("a path that contains other registered paths is a container", () => {
 });
 
 test("the app install directory and hidden paths are filtered too", () => {
-  const opts = { installDir: "D:\\Programs\\Cline\\", hide: ["E:\\Secret\\Project"] };
+  const opts = { installDir: "D:\\Programs\\Cline\\", hide: ["Q:\\keepout\\Project"] };
   assert.ok(L.isContainer("D:\\Programs\\Cline", ALL, opts));
   assert.ok(L.isContainer("D:\\Programs\\Cline\\sub\\thing", ALL, opts));
-  assert.ok(L.isContainer("E:\\Secret\\Project\\", ALL, opts));
+  assert.ok(L.isContainer("Q:\\keepout\\Project\\", ALL, opts));
   assert.ok(!L.isContainer("D:\\Programs\\Other", ALL, opts));
 });
 
@@ -77,12 +78,12 @@ test("unique folder names are shown as-is", () => {
 });
 
 test("colliding folder names gain their parent folder", () => {
-  const out = L.labelize(["E:\\one\\projA\\LLM", "D:\\two\\projB\\LLM"]);
+  const out = L.labelize(["Q:\\one\\projA\\LLM", "D:\\two\\projB\\LLM"]);
   assert.deepStrictEqual(out.map((e) => e.label), ["LLM (projA)", "LLM (projB)"]);
 });
 
 test("labels stay unique even when the parents collide", () => {
-  const out = L.labelize(["E:\\workspace\\LLM", "D:\\workspace\\LLM", "F:\\workspace\\LLM"]);
+  const out = L.labelize(["Q:\\workspace\\LLM", "D:\\workspace\\LLM", "R:\\workspace\\LLM"]);
   assert.deepStrictEqual(out.map((e) => e.label), ["LLM (workspace)", "LLM (2)", "LLM (3)"]);
   assert.strictEqual(new Set(out.map((e) => e.label)).size, 3);
 });
@@ -101,7 +102,7 @@ test("a same-named project is never silently dropped", () => {
   // Cline's own headers carry no path, only the folder name, so when the registry holds two
   // different folders called LLM we cannot tell which one the native "LLM" group is. Showing both
   // (qualified, and without the "no sessions" claim) beats hiding a real project.
-  const paths = ["D:\\chat\\LLM", "E:\\work\\LLM"];
+  const paths = ["D:\\chat\\LLM", "Q:\\work\\LLM"];
   const got = L.plan(paths, ["LLM"], { installDir: "" });
   assert.deepStrictEqual(got.map((e) => e.label), ["LLM (chat)", "LLM (work)"]);
   assert.deepStrictEqual(got.map((e) => e.path), paths);
@@ -145,6 +146,37 @@ test("parseRegistry survives malformed storage", () => {
   assert.deepStrictEqual(L.parseRegistry(ok), { workspaces: ["C:\\a"], last: "C:\\a" });
   assert.deepStrictEqual(L.parseRegistry(JSON.stringify({ environments: { local: { workspaces: "nope" } } })),
     { workspaces: [], last: "" });
+});
+
+// ---------------------------------------------------------------- cline process family
+test("an orphan sidecar is one with no live cline-app ancestor", () => {
+  const rows = [
+    { pid: 10, ppid: 1, name: "cline-app.exe" },        // a window
+    { pid: 11, ppid: 10, name: "code-sidecar.exe" },    // the sidecar it started
+    { pid: 12, ppid: 11, name: "code-sidecar.exe" },    // the hub daemon: a sidecar under a sidecar
+    { pid: 20, ppid: 999, name: "code-sidecar.exe" },   // parent already gone
+    { pid: 21, ppid: 20, name: "code-sidecar.exe" }     // and its hub, one hop deeper
+  ];
+  assert.deepStrictEqual(launcher.planOrphanReap(rows), [20, 21]);
+  assert.deepStrictEqual(launcher.planOrphanReap([]), []);
+  // Once the window is gone everything below it is fair game - that is the post-crash state which
+  // hands a brand new launch a hub that has already been running for days.
+  assert.deepStrictEqual(launcher.planOrphanReap(rows.slice(1)), [11, 12, 20, 21]);
+  // A parent that is simply absent from the table is a dead parent: the walk ends, so it is orphan.
+  assert.deepStrictEqual(launcher.planOrphanReap(rows.slice(0, 1).concat(rows.slice(2))), [12, 20, 21]);
+  // A bogus parent table must not spin.
+  assert.deepStrictEqual(launcher.planOrphanReap([
+    { pid: 1, ppid: 2, name: "code-sidecar.exe" },
+    { pid: 2, ppid: 1, name: "code-sidecar.exe" }]), [1, 2]);
+});
+
+test("killing Cline means the window and every sidecar, hub included", () => {
+  const src = fs.readFileSync(path.join(__dirname, "..", "src", "launcher.js"), "utf8");
+  const body = src.slice(src.indexOf("function killCline()"), src.indexOf("function clineProcesses()"));
+  assert.ok(/APP_IMAGE/.test(body) && /SIDECAR_IMAGE/.test(body),
+    "killCline has to take code-sidecar.exe down too, or the hub survives the restart");
+  assert.ok(!/taskkill\.exe", \["\/IM", "cline-app\.exe"/.test(body),
+    "the single-image taskkill is what left orphan hubs behind");
 });
 
 // ---------------------------------------------------------------- registry wiring
@@ -209,6 +241,36 @@ test("validate rejects the shapes a remote file could wrongly have", () => {
   assert.strictEqual(dict.nestedQuantifier("^\\(weird\\)+$"), false, "escaped parens are not groups");
 });
 
+test("a dictionary rule cannot make the page hang", () => {
+  // The shape check above only catches one family of blow-up, and `^(a|aa)+$` walks straight past
+  // it. This gate times the pattern instead, so it has to catch the rest without rejecting anything
+  // real - which is why the shipped dictionaries are asserted in the same breath.
+  const hostile = ["^(a|aa)+$", "^(a|aa)*$", "^(a+)+b$", "^([a-z]+)+$", "^(.*)*\\d$", "^(x+x+)+y$"];
+  const t0 = Date.now();
+  for (const p of hostile) {
+    assert.ok(dict.regexBlowsUp(p), "not caught by the timing gate: " + p);
+    assert.ok(!dict.validate({
+      version: 1, entries: { A: "甲" }, rules: [{ pattern: p, out: "甲" }], prefixes: []
+    }), "validate accepted a bomb: " + p);
+  }
+  for (const code of dict.available()) {
+    const d = JSON.parse(fs.readFileSync(dict.bundledPath(code), "utf8"));
+    for (const r of d.rules) assert.ok(!dict.regexBlowsUp(r.pattern), code + " rejected: " + r.pattern);
+  }
+  assert.ok(Date.now() - t0 < 4000, "the gate itself is too slow to run every 4 s: " + (Date.now() - t0) + "ms");
+});
+
+test("only Cline's own webview pages get the payload", () => {
+  const cdp = require("../src/cdp");
+  assert.ok(cdp.isClinePage("http://tauri.localhost/index.html"));
+  assert.ok(!cdp.isClinePage("http://localhost:3000/devtools"), "another app on our port");
+  assert.ok(!cdp.isClinePage("https://tauri.localhost.evil.test/"), "suffix look-alike");
+  assert.ok(!cdp.isClinePage(""));
+  assert.ok(!cdp.isClinePage(undefined));
+  assert.ok(cdp.isClinePage("http://localhost:3000/", "localhost:3000"), "explicit override honoured");
+  assert.ok(cdp.isClinePage("https://anything.example/", "*"), "'*' is the documented escape hatch");
+});
+
 // ---------------------------------------------------------------- payload version
 test("payload version is stable and reacts to content, not to call order", () => {
   const conf = { clinePath: "D:\\Programs\\Cline\\cline-app.exe", dictionary: "zh-CN", features: {}, featureHide: [] };
@@ -236,32 +298,48 @@ test("no personal paths or addresses in anything we ship", () => {
     return null;
   };
   const needles = [
-    { test: (b) => profileHit(b), what: "a Windows user profile path", where: null },
+    { test: (b) => profileHit(b), what: "a Windows user profile path", where: null, meta: true },
     { test: (b) => /ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9]{10,}/.test(b), what: "a GitHub token", where: null },
     // npm granular tokens. This machine now keeps one in ~/.npmrc for local maintenance, and other
     // harnesses edit this checkout, so "it would never be committed" is not a control - this is.
     { test: (b) => new RegExp("npm_" + "[A-Za-z0-9]{20,}").test(b), what: "an npm access token", where: null },
     // an e-mail is legitimate author attribution in package.json / NOTICE / README; anywhere else it
     // is almost certainly an audit report or a screenshot note that escaped into the repo.
-    { test: (b) => /[\w.+-]+@(gmail|outlook|qq|163|foxmail)\./i.test(b), what: "a personal e-mail address", where: ["src/", "scripts/", "dictionaries/", "docs/"] }
+    { test: (b) => /[\w.+-]+@(gmail|outlook|qq|163|foxmail)\./i.test(b), what: "a personal e-mail address", where: ["src/", "scripts/", "dictionaries/", "docs/"], meta: true }
   ];
+  const root = path.join(__dirname, "..");
+  // The first two directory segments of wherever this checkout lives are the user's real project
+  // layout ("<drive>:\<top>\<second>", e.g. a personal "Agent/Date" tree). Compare that shape so a
+  // pasted absolute path fails the test on the machine it came from, on any platform, without
+  // hard-coding anyone's drive letter. Deliberately no example path in this comment.
+  const flatten = (s) => s.replace(/\\+/g, "/").toLowerCase();
+  const machineRoot = flatten(path.parse(root).root).startsWith("/") ? "" : flatten(root).split("/").slice(0, 3).join("/");
+  if (machineRoot) {
+    needles.push({
+      test: (b) => flatten(b).includes(machineRoot),
+      what: "this machine's project directory layout (" + machineRoot + ")",
+      where: null
+    });
+  }
   if (user.length > 3) {
     const re = new RegExp(user.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
     needles.push({ test: (b) => re.test(b), what: "this machine's username", where: null });
   }
-  const root = path.join(__dirname, "..");
   const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const p = path.join(dir, e.name);
     if (e.isDirectory()) return [".git", "node_modules", ".cache"].includes(e.name) ? [] : walk(p);
-    return /\.(js|json|md|yml|yaml|txt|ps1|vbs)$/.test(e.name) ? [p] : [];
+    return /\.(js|json|md|yml|yaml|txt|ps1|vbs)$/.test(e.name) || /^(NOTICE|LICENSE)$/.test(e.name) ? [p] : [];
   });
   const offenders = [];
   for (const f of walk(root)) {
     const rel = path.relative(root, f).replace(/\\/g, "/");
-    if (rel === "scripts/selftest.js" || rel === "docs/RELEASE-CHECKLIST.md") continue;
+    // These two files document the check itself and carry its pattern text; a token or a real
+    // local path pasted into them still fails, but the profile/e-mail needles would self-match.
+    const meta = rel === "scripts/selftest.js" || rel === "docs/RELEASE-CHECKLIST.md";
     const body = fs.readFileSync(f, "utf8");
     for (const n of needles) {
       if (n.where && !n.where.some((dir) => rel.startsWith(dir))) continue;
+      if (meta && n.meta) continue;
       if (n.test(body)) offenders.push(rel + " -> " + n.what);
     }
   }

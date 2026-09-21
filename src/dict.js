@@ -29,6 +29,55 @@ function nestedQuantifier(pattern) {
   return false;
 }
 
+/**
+ * Measure, do not guess. The shape check above is a filter, not a proof: `^(a|aa)*$` has no quantifier
+ * directly on the group's closing paren yet backtracks exponentially just the same, and a dictionary
+ * that passes it will hang the webview on ordinary text - the same class of freeze as the observer
+ * loop, only delivered by a download.
+ *
+ * Calibrated on this machine: the 24 shipped rules never break 0.1 ms, while hostile ones cost
+ * 85-195 ms at 24 characters and 22-41 *seconds* at 32. So grow the input and reject the moment a
+ * single attempt exceeds the budget - validating a bad pattern must not take half a minute either.
+ */
+const REGEX_BUDGET_MS = 30;
+
+// A probe built from "a" proves nothing about /^(x+x+)+y$/: the matcher never even gets past the
+// first atom, so the blow-up stays hidden. Take the alphabet from the pattern itself, then fall back
+// to a few generic characters for the classes we cannot read.
+function probeAlphabet(pattern) {
+  const out = [];
+  const add = (ch) => { if (ch && ch.length === 1 && out.length < 6 && !out.includes(ch)) out.push(ch); };
+  for (const m of pattern.matchAll(/\\[dws]|\.|\[([^\]]*)\]/g)) {
+    if (m[1] === undefined) add(m[0] === "\\s" ? " " : "a");     // \d \w . -> something it can match
+    else {
+      const body = m[1];
+      for (const r of body.matchAll(/(.)-(.)/g)) { add(r[1]); add(r[2]); }
+      for (const ch of body.replace(/\\.|[-^\]]/g, "")) add(ch);
+    }
+  }
+  for (const m of pattern.matchAll(/[^\\{[]([A-Za-z0-9])/g)) add(m[1]);
+  add("a"); add("x"); add("0"); add(" ");
+  return out;
+}
+
+function regexBlowsUp(pattern) {
+  let re;
+  try { re = new RegExp(pattern); } catch (e) { return true; }      // uncompilable is not acceptable
+  const chars = probeAlphabet(pattern);
+  const tail = chars.includes("!") ? "?" : "!";                     // must fail to match overall
+  for (const seed of chars) {
+    for (const unit of [seed, seed + seed]) {                       // (a|aa)+ needs both lengths
+      for (const n of [8, 12, 16, 20, 24, 28, 32]) {
+        const probe = unit.repeat(Math.ceil(n / unit.length)).slice(0, n) + tail;
+        const started = Date.now();
+        try { re.test(probe); } catch (e) { return true; }
+        if (Date.now() - started > REGEX_BUDGET_MS) return true;    // guilty, and already expensive
+      }
+    }
+  }
+  return false;
+}
+
 function bundledPath(name) {
   return path.join(__dirname, "..", "dictionaries", name + ".json");
 }
@@ -69,9 +118,11 @@ function validate(d) {
     if (r.pattern.length > 200 || r.out.length > 200) return false;
     if (r.pattern[0] !== "^" || r.pattern[r.pattern.length - 1] !== "$") return false;
     // Patterns reach new RegExp() in the webview, so a nested quantifier such as (a+)+ is a
-    // hang risk, not just a style problem. Reject the shape before it is ever compiled.
+    // hang risk, not just a style problem. Reject the shape before it is ever compiled, and then
+    // measure the ones the shape check lets through.
     if (nestedQuantifier(r.pattern)) return false;
     try { new RegExp(r.pattern); } catch (e) { return false; }
+    if (regexBlowsUp(r.pattern)) return false;
   }
   for (const p of d.prefixes) {
     if (!p || typeof p.from !== "string" || typeof p.to !== "string") return false;
@@ -119,7 +170,16 @@ function load(cfgObj) {
   const cached = readJson(cfg.cachedDictFile(name));
   if (cached && validate(cached) && cached.version > dict.version) dict = merge(dict, cached);
   const local = readJson(cfg.localDictFile(name));
-  if (local && local.entries) dict = merge(dict, local);
+  // The local file is the user's own, but its rules still get compiled inside the webview: a typo
+  // there hangs the interface exactly as a hostile remote file would. Same bar, no exceptions.
+  // An invalid override is skipped rather than fatal - losing one override file is bad, losing the
+  // whole overlay because of one would be worse - but the reason is carried out for doctor to show.
+  if (local && local.entries) {
+    if (validate(local)) dict = merge(dict, local);
+    else dict.warnings = (dict.warnings || []).concat([
+      "ignored " + cfg.localDictFile(name) + ": not a valid dictionary (bad shape, or a rule pattern that backtracks)"
+    ]);
+  }
   dict.sourceVersions = {
     bundled: readJson(bundledPath(name))?.version || 0,
     cached: cached?.version || 0,
@@ -166,9 +226,11 @@ async function update(cfgObj, opts) {
       return { updated: false, error: "remote dictionary is for " + remote.language + ", not " + name };
     }
     const current = load(cfgObj);
-    cfgObj.remoteVersion = remote.version;
     cfg.write(cfgObj);
-    if (remote.version <= current.version && !opts.force) {
+    // `--force` means "ignore the 24 h schedule", never "accept a downgrade": a cached file
+    // outranks the bundled dictionary, so writing an equal or older copy there would detach the
+    // running overlay from the dictionary that shipped with the installed version.
+    if (remote.version <= current.version) {
       return { updated: false, from: current.version, to: remote.version, reason: "already current" };
     }
     cfg.ensureDirs();
@@ -221,4 +283,4 @@ function isKnown(name) {
   return name === NONE || available().includes(name);
 }
 
-module.exports = { load, update, validate, bundledPath, nestedQuantifier, remoteUrlFor, available, choices, isKnown, NONE };
+module.exports = { load, update, validate, bundledPath, nestedQuantifier, regexBlowsUp, remoteUrlFor, available, choices, isKnown, NONE };
