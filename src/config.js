@@ -73,6 +73,11 @@ const DEFAULTS = {
   // Only change this if Cline moves its origin - it exists so a stale debug port cannot make us
   // inject into a different Chromium app that grabbed the same port number.
   pageOrigin: "",
+  // context-meter: a window size to use for models Cline reports no contextWindow for. 0 = say
+  // "limit unknown" rather than divide by a guess.
+  contextLimit: 0,
+  // context-meter: "hide" replaces Cline's own 22px ring with ours, "show" keeps both.
+  nativeMeter: "hide",
   // installer state
   shortcutPath: null,
   lastUpdateCheck: 0,

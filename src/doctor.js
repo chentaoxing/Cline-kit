@@ -34,6 +34,13 @@ function evaluate(api, expression) {
 // to read the numbers instead of assuming the sidebar's. A feature that is only on screen some of the
 // time (the Settings row) must not look like a failure when it is simply not mounted.
 function summarize(stats) {
+  if (typeof stats.meter === "string") {
+    const bits = [stats.meter];
+    // "64%" is only a fact if the window size came from the app; say so when it came from config.
+    if (stats.limitSource === "config") bits.push("limit from ckit config, not Cline");
+    if (stats.via && stats.via !== "ring" && stats.via !== "none") bits.push("read via " + stats.via);
+    return bits.join(", ");
+  }
   if (typeof stats.rows === "number") {
     return stats.rows + " row(s) added of " + stats.registered + " registered, " + stats.nativeGroups + " native";
   }

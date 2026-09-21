@@ -1,5 +1,5 @@
 {
- "version": 5,
+ "version": 6,
  "language": "vi",
  "label": "Vietnamese",
  "clineVersion": "0.0.32",
@@ -626,6 +626,11 @@
    "stringsWord": "chuỗi",
    "stalled": "Thay đổi không được áp dụng: trình nạp nền đang không chạy. Hãy khởi động Cline bằng ckit start rồi bấm lại.",
    "unsaved": "Đã áp dụng trong cửa sổ này; dịch vụ nền đang không chạy nên lựa chọn sẽ không được giữ sau khi khởi động lại."
+  },
+  "context-meter": {
+   "label": "Ngữ cảnh",
+   "unknown": "không rõ giới hạn",
+   "hit": "Tỉ lệ bộ nhớ đệm"
   }
  }
 }

@@ -13,10 +13,11 @@ Every project you registered but have not opened yet is simply invisible. `cline
 them listed, with the same styling as the native groups, and lets you switch into an empty project
 straight from the sidebar.
 
-**Secondary feature:** UI locale packs — 简体中文 (reference, proofread), 繁體中文, 日本語, 한국어,
-Tiếng Việt, plus an `English` opt-out. Pick one inside Cline itself: Settings gains an **Interface
-language** row. Locales exist because the same injection channel can carry them — they are not what
-the project is for.
+**Secondary features:** a context-window meter in the composer bar (`▓▓▓▓░ 64% 🎯 99.2%` — how full
+the model's window is, and how much of the input came back from cache), and UI locale packs —
+简体中文 (reference, proofread), 繁體中文, 日本語, 한국어, Tiếng Việt, plus an `English` opt-out. Pick a
+language inside Cline itself: Settings gains an **Interface language** row. Both exist because the same
+injection channel can carry them — they are not what the project is for.
 
 ## The sidebar problem
 
@@ -123,7 +124,7 @@ then gives you the enhanced sidebar. If you would rather keep your own launcher,
 | `ckit update` | Pull the latest locale dictionary from GitHub (`--force` to check now); the injector also does this once a day unless `--auto-update=off` |
 | `ckit audit` | Walk the UI and list strings still in English — writes a redacted report (`--raw` to skip redaction) |
 | `ckit dict` | Dictionary statistics and the local override path |
-| `ckit config` | Inspect or set `--cline-path`, `--port`, `--auto-update=on\|off`, `--dictionary=<code>`, `--hide=<path>`, `--page-origin=<host>` |
+| `ckit config` | Inspect or set `--cline-path`, `--port`, `--auto-update=on\|off`, `--dictionary=<code>`, `--hide=<path>`, `--page-origin=<host>`, `--context-limit=<tokens>`, `--native-meter=hide\|show` |
 
 ### Choosing a language
 
@@ -162,6 +163,16 @@ The row is added by this kit — Cline has no language setting of its own. Turn 
   session; otherwise the kit keeps project grouping on. Two projects that share a folder name are
   labelled with their parent folder - `LLM (workspace)` - and every row carries the full path as its
   tooltip. Design notes: [`docs/features.zh-CN.md`](docs/features.zh-CN.md).
+* **`context-meter`** (on by default) — `▓▓▓▓░ 64% 🎯 99.2%` in the composer's bottom bar, right after
+  the reasoning-effort control. The numbers are Cline's own: it already computes the token accounting
+  and hands it to its tiny ring next to the project name, and this reads the same object. That ring
+  disappears for models whose catalogue entry has no `contextWindow` (measured on the running app:
+  `cline-free/kimi-k3`, `muse-spark`, `deepseek` — the key is simply absent), which is why the meter
+  looks missing rather than broken. Here a missing limit costs only the percentage: the bar shows the
+  used count plus `no limit`, and the hit rate still appears, because `cacheReadTokens / tokensIn`
+  needs no window size. Supply one yourself with `ckit config --context-limit=262144`; the tooltip then
+  says the number came from config and not from Cline. Cline's own ring is hidden while this is on
+  (`ckit config --native-meter=show` keeps both).
 * **`language-picker`** (on by default) — the Interface language row inside Cline's own Settings page.
   See [Choosing a language](#choosing-a-language).
 * **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model

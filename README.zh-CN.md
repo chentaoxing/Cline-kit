@@ -10,9 +10,10 @@
 在界面上根本不存在。cline-kit 把所有已登记项目常驻列出，样式与原生分组一致，并且可以直接从侧边栏
 切进一个还没有会话的项目。
 
-**附属功能：** 界面语言包，随包 5 份：**zh-CN**（基准，逐条对着界面校过）、繁體中文 / 日本語 / 한국어 /
-Tiếng Việt，另加一项 `English` 表示不替换。选择入口在 Cline 里面：设置页会多出一行**界面语言**。
-语言包之所以在这里，是因为同一条注入通道顺带能承载它——它不是这个项目存在的理由。
+**附属功能：** 输入框底栏的**上下文表**（`▓▓▓▓░ 64% 🎯 99.2%`——窗口用了多少，输入里有多少是缓存命中），
+以及界面语言包，随包 5 份：**zh-CN**（基准，逐条对着界面校过）、繁體中文 / 日本語 / 한국어 /
+Tiếng Việt，另加一项 `English` 表示不替换。语言选择入口在 Cline 里面：设置页会多出一行**界面语言**。
+这些功能之所以在这里，是因为同一条注入通道顺带能承载它们——它们不是这个项目存在的理由。
 
 ## 要解决的问题
 
@@ -113,7 +114,7 @@ ckit locales            # 可选：看有哪些语言、换语言
 | `ckit update` | 从 GitHub 拉取最新语言词典（`--force` 立即检查）；注入器默认每天自己查一次，`--auto-update=off` 可关 |
 | `ckit audit` | 走查界面，列出仍是英文的字符串，写一份**脱敏**报告（`--raw` 不脱敏） |
 | `ckit dict` | 词典统计与本地覆盖文件路径 |
-| `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off`、`--dictionary=<语言>`、`--hide=<路径>`、`--page-origin=<主机>` |
+| `ckit config` | 查看或设置 `--cline-path`、`--port`、`--auto-update=on\|off`、`--dictionary=<语言>`、`--hide=<路径>`、`--page-origin=<主机>`、`--context-limit=<tokens>`、`--native-meter=hide\|show` |
 
 ### 选择语言
 
@@ -144,6 +145,13 @@ ckit locales none     # 不再替换 Cline 自己的文案
   如果你亲手点了 Cline 的排序按钮，本会话内就以你的选择为准不再干预；否则增强层会持续保持分组模式。
   两个同名项目（比如两块盘上都有 `LLM`）会带上上级目录名显示成 `LLM (workspace)`，仍然重名就加序号，
   而鼠标悬停始终是完整路径。设计说明见 [`docs/features.zh-CN.md`](docs/features.zh-CN.md)。
+* **`context-meter`**（默认开启）——输入框底栏的 `▓▓▓▓░ 64% 🎯 99.2%`，位置在思考强度之后、项目名之前。
+  数字全部取自 Cline 自己的统计：它本来就算好了 token 账，只是画成项目名右边一个 22px 小圆环。
+  那个圆环在**模型没登记 contextWindow 时会整个不渲染**（实测 `cline-free/kimi-k3`、`muse-spark`、
+  `deepseek` 的目录条目里就没有这个键），所以看起来像"时有时无"而不是坏掉。这里少了上限只少掉百分比：
+  条子仍在，显示已用量 +「上限未知」，命中率照给——`cacheReadTokens / tokensIn` 不需要窗口大小。
+  想给这类模型手动指定：`ckit config --context-limit=262144`，悬停提示会写明这个数来自配置而不是 Cline。
+  本功能开启时原生圆环会被隐藏（`ckit config --native-meter=show` 可以两个都留）。
 * **`language-picker`**（默认开启）——在 Cline 自己的设置页里加一行「界面语言」，见
   [选择语言](#选择语言)。
 * **语言包**（`dictionaries/<locale>.json`）——只做**整串精确匹配**替换，因此不会误伤模型名、服务商名、

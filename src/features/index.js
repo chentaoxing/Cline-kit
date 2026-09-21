@@ -26,6 +26,22 @@ const DEFS = [
     }
   },
   {
+    id: "context-meter",
+    // shared logic first, then the browser script that consumes window.__ckitContextLogic
+    parts: ["context-meter.logic.js", "context-meter.js"],
+    title: "Context window and cache-hit meter in the composer bar / 上下文占用与缓存命中率",
+    defaultOn: true,
+    build(ctx) {
+      return {
+        // Used only for models Cline reports no contextWindow for; 0 means "say we do not know".
+        fallbackLimit: Number(ctx.cfg.contextLimit) || 0,
+        hideNative: (ctx.cfg.nativeMeter || "hide") !== "show",
+        glyph: "🎯",
+        text: (ctx.featureText || {})[this.id] || {}
+      };
+    }
+  },
+  {
     id: "language-picker",
     file: "language-picker.js",
     title: "Interface language row inside Cline's own Settings / 在 Cline 设置页里选语言",

@@ -22,6 +22,20 @@ each `dictionaries/<locale>.json` rather than here.
 
 ### Added
 
+- **`context-meter`** - a context-window meter in the composer's bottom bar, right after the
+  reasoning-effort control: `▓▓▓▓░ 64% 🎯 99.2%`. The numbers are Cline's own token accounting, read
+  from the props its own ring receives, so the overlay and the app cannot disagree. That ring
+  disappears whenever the model reports no `contextWindow`, which measured true for
+  `cline-free/kimi-k3`, `muse-spark-1.3-contributor` and `deepseek-v4.1-flash` - the key is absent
+  from their catalogue entry, so the component returns null and the meter looks missing rather than
+  blank-by-design. Here a missing limit costs only the percentage: the bar keeps the used count, the
+  label says `no limit`, and the hit rate still shows because `cacheReadTokens / tokensIn` needs no
+  window size. No number is ever divided by a guess; `ckit config --context-limit=<tokens>` supplies
+  one and the tooltip then says it came from config. Cline's own ring is hidden while this is on
+  (`--native-meter=show` keeps both). Reading the props works without the ring because a component
+  that renders null still has a fiber with its props, so the feature falls back to a bounded walk.
+- `ckit doctor` reports what the meter actually resolved (`167k / 262k = 64%, hit 99.2%`, or
+  `no data` on the home screen) and says when the window size came from config rather than Cline.
 - `ckit doctor` reports the live hub: which process owns `:25463`, how long it has been up, and how
   many sidecars have outlived the window that started them.
 

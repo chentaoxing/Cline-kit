@@ -1,5 +1,5 @@
 {
- "version": 5,
+ "version": 6,
  "language": "ko",
  "label": "Korean",
  "clineVersion": "0.0.32",
@@ -626,6 +626,11 @@
    "stringsWord": "개",
    "stalled": "변경 사항이 적용되지 않았습니다. 백그라운드 인젝터가 실행 중이 아닙니다. ckit start로 Cline을 실행한 뒤 다시 눌러 주세요.",
    "unsaved": "이 창에는 적용되었습니다. 백그라운드 서비스가 실행 중이 아니어서 재시작하면 선택이 유지되지 않습니다."
+  },
+  "context-meter": {
+   "label": "컨텍스트",
+   "unknown": "상한 없음",
+   "hit": "캐시 적중"
   }
  }
 }

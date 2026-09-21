@@ -1,5 +1,5 @@
 {
- "version": 6,
+ "version": 7,
  "language": "zh-TW",
  "label": "繁體中文",
  "clineVersion": "0.0.32",
@@ -627,6 +627,11 @@
    "stringsWord": "條",
    "stalled": "變更未被套用：背景注入器未在執行。請用 ckit start 啟動 Cline 後再點一次。",
    "unsaved": "已在此視窗生效；背景服務未在執行，重新啟動後不會保留此選擇。"
+  },
+  "context-meter": {
+   "label": "上下文",
+   "unknown": "上限未知",
+   "hit": "快取命中"
   }
  }
 }

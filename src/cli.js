@@ -33,11 +33,20 @@ Usage: ckit <command> [options]
   dict             Dictionary stats and the local override file path
   config           View or set: --cline-path=... --port=... --auto-update=on|off
                    --dictionary=<locale> --hide=<path> / --unhide=<path> --page-origin=<host>
+                   --context-limit=<tokens> --native-meter=hide|show
 
 Main feature
   sidebar-groups   Keeps every registered project visible in the sidebar's "Projects" group.
                    Cline natively lists only folders that already have sessions, so empty
                    projects disappear entirely.
+
+  context-meter    Context-window fill (bar + %) and cache hit rate (🎯 %) in the composer bar,
+                   right after the reasoning-effort control. Reads Cline's own token accounting,
+                   so it cannot disagree with the app. Several free models report no contextWindow
+                   (measured: kimi-k3, muse-spark, deepseek); those show the used count and the hit
+                   rate with "no limit" instead of a made-up percentage - supply one with
+                   'ckit config --context-limit=262144'. Cline's own 22px ring is hidden while this
+                   is on ('ckit config --native-meter=show' keeps both).
 
 Optional feature
   locale packs     dictionaries/<locale>.json - whole-string replacement only, so provider names,
@@ -344,6 +353,24 @@ async function main() {
         return;
       }
       conf.dictionary = want; changed = true;
+    }
+    if (flags["context-limit"] !== undefined) {
+      const n = Number(flags["context-limit"]);
+      if (!Number.isFinite(n) || n < 0) {
+        console.error(`--context-limit wants a token count (e.g. 262144), got "${flags["context-limit"]}"`);
+        process.exitCode = 1;
+        return;
+      }
+      conf.contextLimit = Math.floor(n); changed = true;
+    }
+    if (flags["native-meter"] !== undefined) {
+      const v = String(flags["native-meter"]).toLowerCase();
+      if (v !== "hide" && v !== "show") {
+        console.error(`--native-meter wants hide or show, got "${flags["native-meter"]}"`);
+        process.exitCode = 1;
+        return;
+      }
+      conf.nativeMeter = v; changed = true;
     }
     if (flags["hide"]) {
       const kept = (conf.featureHide || []).slice();

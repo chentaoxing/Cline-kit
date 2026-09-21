@@ -81,6 +81,30 @@ Cline 原生没有语言设置，所以这一行由插件加进它自己的设�
   表现就是"点了没反应"。用 `element.click()` 测永远测不出来（它作用在刚建好、还活着的节点上），
   所以 `scripts/language-picker-check.js` 改成派发真实鼠标事件，并且断言 3 秒内该行重建不超过两次。
 
+## context-meter — 上下文占用与缓存命中率
+
+输入框底栏 `▓▓▓▓░ 64% 🎯 99.2%`，插在思考强度之后。它不自己记账：Cline 本来就算好了
+`{contextWindow, tokensIn, tokensOut, cacheReadTokens, totalCost}` 并交给自己的那个圆环，
+本插件读的就是同一份对象，所以两边永远不会对不上数。
+
+关键的一点是**那个圆环为什么会消失**。它的组件里写着 `if (used <= 0 || !contextWindow) return null`，
+而 Cline 的免费模型目录里有几个根本没登记 `contextWindow`——实测 `cline-free/kimi-k3`、
+`cline-free/muse-spark-1.3-contributor`、`cline-free/deepseek-v4.1-flash` 的对象里连这个键都没有，
+只有 `poolside/laguna-s-2.1:free` 有（262144）。所以不是坏了，是它没有分母。
+
+组件返回 null 时**它的 fiber 仍在树里、props 还在**，所以拿数据不依赖那个节点存不存在：先试
+`#token-usage` 往上走，走不到就从任意 fiber 爬到根再广度找 `memoizedProps.usage`（上限 14000 个节点，
+找到就把 fiber 缓存下来，下一轮直接读）。这就是 kimi 那些会话里我们还能给出命中率的原因。
+
+少了分母怎么办：百分比直接不显示，写「上限未知」，条子留着显示已用量；命中率照给，因为
+`cacheReadTokens / tokensIn` 不需要窗口大小。**不拿一个猜的数去除**——这是这个插件唯一一条硬规则。
+`ckit config --context-limit=262144` 可以手动给一个，此时 `limitSource` 变成 `config`，
+悬停提示和 `ckit doctor` 都会写明这个数来自配置而不是 Cline。
+
+另外两条约束：只用 interval（1 秒）驱动，不挂 MutationObserver——token 数自己会动，
+盯着整个文档只会被无关重绘叫醒；颜色阈值沿用圆环的 ≥75% 红、≥50% 橙，且**用内联颜色而不是
+`bg-*` 工具类**，因为应用的样式表里只有它自己用过的 Tailwind 类，我们现编的类名根本不存在。
+
 ## 自检
 
 `ckit doctor` 读的是**页面里**的状态而不是配置文件里的期望值：插件把计数写在
@@ -90,7 +114,9 @@ Cline 原生没有语言设置，所以这一行由插件加进它自己的设�
 
 每个插件的 stats 形状不同，所以 doctor 按形状分别概括：侧边栏报行数，`language-picker` 报
 `row present / row not on screen (no-settings-page), current zh-CN, 6 choices`——设置页没打开时
-那一行本来就不该在，这不算 FAIL。
+那一行本来就不该在，这不算 FAIL；`context-meter` 报 `167k / 262k = 64%, hit 99.2%`，
+首页没有会话数据时报 `no data`（同样是正常状态），上限来自配置时会附一句 `limit from ckit config,
+not Cline`。
 
 路径、标签、容器判定这些纯逻辑放在 `src/features/sidebar-groups.logic.js`（UMD：浏览器里挂到
 `window.__ckitSidebarLogic`，测试里按 CommonJS 引入）。`src/features/index.js` 装载插件时把

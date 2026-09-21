@@ -1,5 +1,5 @@
 {
- "version": 5,
+ "version": 6,
  "language": "ja",
  "label": "Japanese",
  "clineVersion": "0.0.32",
@@ -626,6 +626,11 @@
    "stringsWord": "件",
    "stalled": "変更が適用されませんでした。バックグラウンドのインジェクターが停止中です。ckit start で Cline を起動してからもう一度お試しください。",
    "unsaved": "このウィンドウでは反映済みです。バックグラウンドサービスが停止中のため、再起動するとこの選択は保持されません。"
+  },
+  "context-meter": {
+   "label": "コンテキスト",
+   "unknown": "上限不明",
+   "hit": "キャッシュヒット"
   }
  }
 }

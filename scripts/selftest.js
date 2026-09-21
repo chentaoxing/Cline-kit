@@ -179,6 +179,50 @@ test("killing Cline means the window and every sidecar, hub included", () => {
     "the single-image taskkill is what left orphan hubs behind");
 });
 
+// ---------------------------------------------------------------- context meter
+const meter = require("../src/features/context-meter.logic.js");
+
+test("the context meter reads Cline's numbers the way Cline does", () => {
+  // Real values taken from the running app (poolside/laguna-s-2.1 session).
+  const s = meter.summarize({ contextWindow: 262144, tokensIn: 166511, tokensOut: 399, cacheReadTokens: 165152 }, {});
+  assert.strictEqual(s.used, 166910, "used = in + out, which is Cline's own definition");
+  assert.strictEqual(s.pct, 64);
+  assert.strictEqual(s.hit, 99.2);
+  assert.strictEqual(s.limitSource, "app");
+  // Measured too: these models report no contextWindow key at all, which is why Cline's ring is blank
+  // there. The percentage has to disappear with the limit - not be invented.
+  const noLimit = meter.summarize({ tokensIn: 61183, tokensOut: 445, cacheReadTokens: 0 }, {});
+  assert.strictEqual(noLimit.pct, null, "no contextWindow must not become a made-up percentage");
+  assert.strictEqual(noLimit.hit, 0, "the hit rate needs no window size, so it stays");
+  assert.strictEqual(noLimit.limitSource, "none");
+  // A configured fallback is legitimate, but it is a guess and the reader has to be able to tell.
+  const withCfg = meter.summarize({ tokensIn: 61183, tokensOut: 445, cacheReadTokens: 0 }, { fallbackLimit: 200000 });
+  assert.strictEqual(withCfg.pct, 31);
+  assert.strictEqual(withCfg.limitSource, "config");
+});
+
+test("the context meter shows nothing rather than a confident zero", () => {
+  assert.strictEqual(meter.summarize(null, {}), null);
+  assert.strictEqual(meter.summarize({}, {}), null);
+  assert.strictEqual(meter.summarize({ tokensIn: 0, tokensOut: 0, contextWindow: 200000 }, {}), null);
+  // Reporting quirks: cacheReadTokens above tokensIn, and a window that overflowed.
+  const s = meter.summarize({ contextWindow: 1000, tokensIn: 100, tokensOut: 10, cacheReadTokens: 900 }, {});
+  assert.strictEqual(s.hit, 100, "hit rate stays inside 0..100");
+  assert.strictEqual(s.pct, 11);
+  assert.strictEqual(meter.summarize({ contextWindow: 1000, tokensIn: 1500, tokensOut: 0, cacheReadTokens: 0 }, {}).pct,
+    100, "a full window must not read 150%");
+});
+
+test("token counts stay readable at a glance", () => {
+  assert.strictEqual(meter.fmtTokens(0), "0");
+  assert.strictEqual(meter.fmtTokens(999), "999");
+  assert.strictEqual(meter.fmtTokens(6183), "6.2k");
+  assert.strictEqual(meter.fmtTokens(61628), "62k");
+  assert.strictEqual(meter.fmtTokens(2621440), "2.6M");
+  assert.notStrictEqual(meter.fillColor(80), meter.fillColor(20), "threshold colours must differ");
+  assert.strictEqual(meter.fillColor(null), "currentColor", "no percentage, no alarm colour");
+});
+
 // ---------------------------------------------------------------- registry wiring
 test("every declared feature file exists and parses a version", () => {
   for (const f of features.list()) {
