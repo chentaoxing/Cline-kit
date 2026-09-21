@@ -39,17 +39,54 @@ const READ_ROW = `(function(){
                           ownTextTranslated: /\\{\\{|undefined/.test(r.innerText) });
 })()`;
 
-const CLICK_LANG = (code) => `(function(){
+// A real pointer click, not element.click(). The bug this catches is a control that replaces its own
+// DOM node on a timer: `element.click()` dispatches against a node that exists for one more
+// microsecond and always succeeds, while a human's press-and-release lands on a node that has been
+// swapped out, and nothing happens.
+async function clickCode(port, code) {
+  const where = await evalAll(port, LOCATE(code));
+  const raw = where.filter(Boolean)[0];
+  if (!raw) throw new Error("could not locate the " + code + " button");
+  const at = JSON.parse(raw);
+  if (at.err) throw new Error(at.err);
+  await cdp.eachPage(port, async (api) => {
+    await api.rpc("Input.dispatchMouseEvent", { type: "mouseMoved", x: at.x, y: at.y, button: "none" });
+    await api.rpc("Input.dispatchMouseEvent", { type: "mousePressed", x: at.x, y: at.y, button: "left", clickCount: 1 });
+    await api.rpc("Input.dispatchMouseEvent", { type: "mouseReleased", x: at.x, y: at.y, button: "left", clickCount: 1 });
+    return true;
+  });
+  return "clicked at " + Math.round(at.x) + "," + Math.round(at.y);
+}
+
+const LOCATE = (code) => `(function(){
   var r = document.querySelector("[data-ckit-lang]");
-  if(!r) return "no-row";
-  var btns = [].slice.call(r.querySelectorAll("button[data-ckit-code]"));
-  var want = ${JSON.stringify(code)};
+  if(!r) return JSON.stringify({err:"no-row"});
   var b = null;
-  for(var i=0;i<btns.length;i++) if(btns[i].getAttribute("data-ckit-code") === want) b = btns[i];
-  if(!b) return "no-button-for-" + want + " (of " + btns.length + ")";
-  b.click();
-  return "clicked";
+  [].slice.call(r.querySelectorAll("button[data-ckit-code]")).forEach(function(x){ if(x.getAttribute("data-ckit-code") === ${JSON.stringify(code)}) b = x; });
+  if(!b) return JSON.stringify({err:"no-button-for-${code}"});
+  var q = b.getBoundingClientRect();
+  if (!q.width || !q.height) return JSON.stringify({err:"button has no size"});
+  return JSON.stringify({ x: q.x + q.width / 2, y: q.y + q.height / 2 });
 })()`;
+
+// How many times our own row was thrown away and rebuilt while nobody touched it. Anything above a
+// couple means the control is unstable under the pointer.
+const CHURN_START = `(function(){
+  var r = document.querySelector("[data-ckit-lang]");
+  if(!r || !r.parentElement) return "no-row";
+  r.setAttribute("data-churn-probe","1");
+  window.__ckitChurn = 0;
+  if (window.__ckitChurnStop) window.__ckitChurnStop();
+  var mo = new MutationObserver(function(ms){
+    ms.forEach(function(m){ [].slice.call(m.addedNodes).forEach(function(n){
+      if (n.nodeType===1 && n.hasAttribute && n.hasAttribute("data-ckit-lang") && !n.hasAttribute("data-churn-probe")) window.__ckitChurn++;
+    }); });
+  });
+  mo.observe(r.parentElement, { childList: true });
+  window.__ckitChurnStop = function(){ mo.disconnect(); };
+  return "watching";
+})()`;
+const CHURN_READ = `(function(){ var n = window.__ckitChurn || 0; if (window.__ckitChurnStop) window.__ckitChurnStop(); return n; })()`;
 
 const COUNT_TEXT = (wanted) => `(function(){
   var wanted = ${JSON.stringify(wanted)};
@@ -111,9 +148,13 @@ async function main() {
   if (row.ownTextTranslated) throw new Error("the engine is translating the picker's own labels");
   if (!row.buttons.some((b) => b.pressed === "true")) throw new Error("no button marks the current language");
 
-  console.log("clicking " + target + " inside the window...");
-  const clicked = await evalAll(conf.port, CLICK_LANG(target));
-  if (!clicked.some((c) => c === "clicked")) throw new Error("click failed: " + JSON.stringify(clicked));
+  console.log("clicking " + target + " inside the window with a real pointer event...");
+  await evalAll(conf.port, CHURN_START);
+  await sleep(3000);
+  const churn = Number((await evalAll(conf.port, CHURN_READ))[0]);
+  console.log("  row rebuilt " + churn + " time(s) while untouched");
+  if (churn > 2) throw new Error("the row replaces its own DOM node " + churn + "x per 3 s - a real click cannot land on it");
+  console.log("  " + await clickCode(conf.port, target));
   await sleep(9000);                       // injector cycle is 4 s; give it two
 
   const after = (await evalAll(conf.port, READ_ROW)).filter(Boolean).map((s) => JSON.parse(s)).find((r) => r.row);
@@ -132,8 +173,7 @@ async function main() {
   if (cfg.read().dictionary !== target) throw new Error("the choice was not persisted to config");
 
   console.log("clicking back to " + original + "...");
-  const back = await evalAll(conf.port, CLICK_LANG(original));
-  if (!back.some((c) => c === "clicked")) throw new Error("restore click failed: " + JSON.stringify(back));
+  await clickCode(conf.port, original);
   await sleep(9000);
   const restored = cfg.read().dictionary;
   const reRow = (await evalAll(conf.port, READ_ROW)).filter(Boolean).map((s) => JSON.parse(s)).find((r) => r.row);

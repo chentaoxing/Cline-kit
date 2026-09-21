@@ -4,7 +4,29 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [0.4.2] - 2026-09-21
+
+### Fixed
+
+- **A real mouse click on the language row now registers.** The row was rebuilding itself on every
+  refresh, and rebuilding is itself a DOM change, which queued another refresh - so the button under
+  the pointer was being destroyed and replaced continuously, and press-and-release never landed on
+  the same element. This is why "clicking does nothing" survived three rounds of debugging: a
+  scripted click dispatches against a node that exists for one more microsecond and always appeared
+  to work.
+- The row is built once and afterwards only its text and selected state are updated, and only when
+  something actually changed. Measured: 0 rebuilds per 3 s while untouched (was continuous).
+- The "will not persist" note appeared the instant you clicked, blaming a background service that
+  was about to handle the request. It now waits until the request has actually aged out.
+
+### Added
+
+- `scripts/language-picker-check.js` clicks with dispatched mouse events at the button coordinates
+  and fails if the row rebuilds itself more than twice in three seconds, so this class of bug cannot
+  come back looking green.
+
 ## [0.4.1] - 2026-09-21
+
 
 ### Fixed
 

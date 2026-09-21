@@ -13,7 +13,7 @@
 // Runs inside the webview. Config arrives as window.__clineKitFeature["language-picker"].
 (function () {
   var ID = "language-picker";
-  var VER = 1;                       // human-readable; hot-swap keys off CFG.__build instead
+  var VER = 3;                       // human-readable; hot-swap keys off CFG.__build instead
   var CFG = (window.__clineKitFeature && window.__clineKitFeature[ID]) || {};
   var st = window.__clineKitFeatureState = window.__clineKitFeatureState || {};
   var BUILD = String(CFG.__build || "v" + VER);
@@ -105,7 +105,18 @@
     if (applied) CURRENT = code;
     try { localStorage.setItem(PENDING, code); } catch (e) { /* nothing to persist to */ }
     if (!applied) armStallWatch(code);
+    armUnsavedWatch();
     render();
+  }
+
+  // The injector gets to the request within one cycle, so claiming "it will not persist" the instant
+  // someone clicks is just wrong. Only say it once the request has visibly aged.
+  var unsaved = false;
+  var unsavedTimer = null;
+  function armUnsavedWatch() {
+    unsaved = false;
+    if (unsavedTimer) clearTimeout(unsavedTimer);
+    unsavedTimer = setTimeout(function () { unsavedTimer = null; unsaved = true; render(); }, 8000);
   }
 
   // Only reachable when the payload carried a single locale (an older injector) or the code was not
@@ -127,65 +138,89 @@
     row.setAttribute("data-ckit-lang", String(VER));
     row.setAttribute("data-ckit-ui", "");  // the engine must not re-translate our own labels
     var left = el("div", LEFT_CLS);
-    left.appendChild(el("p", TITLE_CLS, t("title", "Interface language")));
-    var p = pendingCode();
-    var waiting = p && p !== CURRENT;
-    if (!waiting && stalled) stalled = false;         // somebody took the request
-    var stuck = waiting && stalled;
-    // The page already switched; the key is still there means the config has not caught up, so the
-    // choice will not survive a restart. Say it quietly rather than alarmingly.
-    var unsaved = !!(p && p === CURRENT);
-    var msg = stuck ? t("stalled",
-      "Nothing is applying the change - start the kit with `ckit start`, then click again.")
-      : waiting ? t("switching", "Switching...")
-      : unsaved ? t("unsaved", "Applied now; it will not persist until the kit's background service is running.")
-      : t("hint", "Added by cline-kit. Applies in a few seconds, no restart.");
-    left.appendChild(el("p", HINT_CLS, msg));
-    if (stuck) left.lastChild.style.color = "var(--destructive, #d13438)";
-    else if (unsaved) left.lastChild.style.color = "var(--warning, #b58900)";
+    var title = el("p", TITLE_CLS, t("title", "Interface language"));
+    var hint = el("p", HINT_CLS, "");
+    left.appendChild(title); left.appendChild(hint);
     row.appendChild(left);
 
     var group = el("div", GROUP_CLS);
     group.setAttribute("role", "group");
     group.setAttribute("aria-label", t("title", "Interface language"));
+    var buttons = {};
     for (var i = 0; i < CHOICES.length; i++) {
       (function (c) {
-        var on = c.code === CURRENT;
-        var b = el("button", BTN_CLS + (on ? ON_CLS : OFF_CLS), c.native);
+        var b = el("button", "", c.native);
         b.type = "button";
         b.setAttribute("data-ckit-code", c.code);   // stable handle for tests and for `ckit doctor`
-        b.setAttribute("aria-pressed", on ? "true" : "false");
         b.setAttribute("title", c.off
           ? t("offTip", "Show Cline's original text")
           : c.code + " - " + c.strings + " " + t("stringsWord", "strings") + " v" + c.version);
-        if (waiting && c.code === p) b.className += ON_CLS;
         b.addEventListener("click", function () { if (c.code !== CURRENT) choose(c.code); });
         group.appendChild(b);
+        buttons[c.code] = b;
       })(CHOICES[i]);
     }
     row.appendChild(group);
-    return row;
+    return { row: row, hint: hint, buttons: buttons };
   }
 
-  function removeRow(box) {
-    var olds = box.querySelectorAll(":scope > [data-ckit-lang]");
-    for (var i = 0; i < olds.length; i++) olds[i].remove();
+  // Only what changes: the selected button, and the hint line.
+  function paint(built) {
+    var p = pendingCode();
+    var waiting = p && p !== CURRENT;
+    var stuck = waiting && stalled;
+    var showingUnsaved = !!(p && p === CURRENT) && unsaved;
+    built.hint.textContent = stuck ? t("stalled",
+      "Nothing is applying the change - start the kit with `ckit start`, then click again.")
+      : waiting ? t("switching", "Switching...")
+      : showingUnsaved ? t("unsaved", "Applied now; it will not persist until the kit's background service is running.")
+      : t("hint", "Added by cline-kit. Applies in a few seconds, no restart.");
+    built.hint.style.color = stuck ? "var(--destructive, #d13438)"
+      : showingUnsaved ? "var(--warning, #b58900)" : "";
+    for (var i = 0; i < CHOICES.length; i++) {
+      var c = CHOICES[i], b = built.buttons[c.code];
+      if (!b) continue;
+      var on = c.code === CURRENT;
+      b.className = BTN_CLS + (on ? ON_CLS : OFF_CLS);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    }
   }
+
+  // A signature, not a rebuild. The previous version replaced the whole row on every refresh, and
+  // replacing it is itself a DOM mutation - so the observer queued another refresh and the row was
+  // recreated continuously. Every pointer-down landed on a button that was gone by mouse-up, which is
+  // exactly "点击了没用", while a scripted click dispatched in the same frame as a rebuild always
+  // appeared to work.
+  function signature() {
+    return CURRENT + "|" + (pendingCode() || "") + "|" + (stalled ? 1 : 0) + "|" + (unsaved ? 1 : 0) + "|" + CHOICES.length;
+  }
+
+  var built = null;      // { row, hint, buttons }
+  var sig = "";
 
   function render() {
     var box = settingsSection();
     if (!box) { st[ID + "_stats"] = { version: VER, build: BUILD, row: "no-settings-page", choices: CHOICES.length }; return; }
-    var prev = box.querySelector(":scope > [data-ckit-lang]");
-    if (prev) {
-      // Text-only refresh keeps focus on a button the user may be tabbing through.
-      var fresh = buildRow();
-      box.replaceChild(fresh, prev);
-    } else {
-      var after = anchorRow(box);
-      if (after && after.nextSibling) box.insertBefore(buildRow(), after.nextSibling);
-      else if (after) box.appendChild(buildRow());
-      else box.appendChild(buildRow());
+    var mine = box.querySelector(":scope > [data-ckit-lang]");
+    if (built && mine !== built.row) built = null;   // Cline re-rendered the page under us
+    if (!built) {
+      built = buildRow();
+      if (mine) box.replaceChild(built.row, mine);
+      else {
+        var after = anchorRow(box);
+        if (after && after.nextSibling) box.insertBefore(built.row, after.nextSibling);
+        else box.appendChild(built.row);
+      }
+      sig = "";
     }
+    var s = signature();
+    var p = pendingCode();
+    if (!p || p === CURRENT) {
+      // The request is gone or already reflected: stop warning about it.
+      if (stalled) { stalled = false; s = ""; }
+      if (unsaved) { unsaved = false; if (unsavedTimer) { clearTimeout(unsavedTimer); unsavedTimer = null; } s = ""; }
+    }
+    if (s !== sig) { sig = s; paint(built); }
     st[ID + "_stats"] = {
       version: VER, build: BUILD, row: "rendered", current: CURRENT,
       pending: pendingCode(), stalled: stalled, choices: CHOICES.length
