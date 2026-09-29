@@ -1,9 +1,9 @@
 {
- "version": 6,
+ "version": 7,
  "language": "ja",
  "label": "Japanese",
- "clineVersion": "0.0.32",
- "updated": "2026-09-21",
+ "clineVersion": "0.0.37",
+ "updated": "2026-09-29",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "セッション",
@@ -481,7 +481,15 @@
   "Work with issues, pull requests, and repositories on GitHub.": "GitHub で Issue、プルリクエスト、リポジトリを扱います。",
   "Working directory": "作業ディレクトリ",
   "You're already running the latest version of Cline.": "最新版の Cline を実行中です。",
-  "You're up to date": "最新の状態です"
+  "You're up to date": "最新の状態です",
+  "Providers": "プロバイダー",
+  "Restore": "復元",
+  "Speak instead of typing: the microphone in chat transcribes your voice with the model chosen here. Text appears as you speak; Stop ends the live session.": "音声で入力する：チャットのマイクが、ここで選択したモデルで音声を文字起こしします。話した内容がそのままテキストになり、「停止」でライブセッションを終了します。",
+  "None of your configured providers offer streaming speech-to-text models": "設定済みのプロバイダーの中に、ストリーミング音声認識モデルを提供するものはありません",
+  "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "ストリーミング文字起こしモデルに対応したプロバイダー（例：Vercel AI Gateway）を接続すると、このページは自動的に利用できるようになります。",
+  "Loading schedules...": "スケジュールを読み込み中…",
+  "Enable all builtin tools": "組み込みツールをすべて有効化",
+  "No builtin tools found.": "組み込みツールが見つかりません。"
  },
  "prefixes": [
   {

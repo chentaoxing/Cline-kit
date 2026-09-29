@@ -1,9 +1,9 @@
 {
- "version": 6,
+ "version": 7,
  "language": "ko",
  "label": "Korean",
- "clineVersion": "0.0.32",
- "updated": "2026-09-21",
+ "clineVersion": "0.0.37",
+ "updated": "2026-09-29",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "세션",
@@ -481,7 +481,15 @@
   "Work with issues, pull requests, and repositories on GitHub.": "GitHub에서 이슈, PR, 저장소를 다룹니다.",
   "Working directory": "작업 디렉터리",
   "You're already running the latest version of Cline.": "이미 Cline 최신 버전을 실행하고 있습니다.",
-  "You're up to date": "이미 최신 버전입니다"
+  "You're up to date": "이미 최신 버전입니다",
+  "Providers": "제공자",
+  "Restore": "복원",
+  "Speak instead of typing: the microphone in chat transcribes your voice with the model chosen here. Text appears as you speak; Stop ends the live session.": "말해서 입력하기: 채팅의 마이크가 여기서 선택한 모델로 음성을 텍스트로 변환합니다. 말하는 내용이 바로 텍스트로 나타나고, '중지'로 라이브 세션을 종료합니다.",
+  "None of your configured providers offer streaming speech-to-text models": "설정된 제공자 중에 스트리밍 음성-텍스트 변환 모델을 제공하는 곳이 없습니다",
+  "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "스트리밍 변환 모델을 지원하는 제공자(예: Vercel AI Gateway)를 연결하면 이 페이지가 자동으로 잠금 해제됩니다.",
+  "Loading schedules...": "스케줄 불러오는 중...",
+  "Enable all builtin tools": "내장 도구 모두 활성화",
+  "No builtin tools found.": "내장 도구를 찾을 수 없습니다."
  },
  "prefixes": [
   {

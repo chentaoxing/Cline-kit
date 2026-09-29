@@ -50,7 +50,7 @@ Main feature
 
 Optional feature
   locale packs     dictionaries/<locale>.json - whole-string replacement only, so provider names,
-                   model names and code cannot be mangled. Bundled: zh-CN (reference, 476 entries),
+                   model names and code cannot be mangled. Bundled: zh-CN (reference, 484 entries),
                    zh-TW, ja, ko, vi, plus 'none' to leave Cline's own text alone.
                    Pick it INSIDE Cline: Settings -> Interface language (that row is added by this
                    kit, and clicking it applies within ~4 s without a restart). Or from here:
@@ -249,13 +249,18 @@ async function main() {
     if (!conf.port) { console.error("Cline was not started through cline-kit; run ckit start first"); process.exit(1); }
     const r = await require("./audit").run(conf.port, { raw: !!flags.raw, origin: conf.pageOrigin });
     const limit = Number(flags.limit) || 80;
-    console.log(`${r.total} untranslated strings, details: ${r.file}`);
+    console.log(`${r.total} strings still without a translation, details: ${r.file}`);
     if (!flags.raw) {
       console.log("E-mails, paths, URLs and identifiers were redacted (" + r.redacted +
         " entries). Use --raw only on your own machine, and skim before publishing.");
     }
     r.items.slice(0, limit).forEach(([s, where]) => console.log("  " + s + "   [" + where + "]"));
     if (r.total > limit) console.log("  ...");
+    if (r.byDesign && r.byDesign.length) {
+      console.log("\n" + r.byDesign.length + " more are in English on purpose (tool identifiers, product");
+      console.log("names, your own session titles and paths) - listed so nothing is hidden:");
+      r.byDesign.slice(0, limit).forEach(([s, where]) => console.log("  " + s + "   [" + where + "]"));
+    }
     return;
   }
 

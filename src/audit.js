@@ -33,6 +33,27 @@ function redact(text) {
   return { text: out, changed };
 }
 
+// Most of what a walk "finds" is not a gap: tool identifiers, provider and model names, and the
+// user's own content (session titles, host names, paths) stay in English by policy. Classifying them
+// here means the headline number is "strings to translate", instead of a human re-reading the same
+// list after every Cline release. The rules are deliberately narrow, and nothing is hidden - these
+// items are still printed, under their own heading.
+const BY_DESIGN = [
+  { re: /<[^>]+>/, why: "redacted user content" },
+  { re: /^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/, why: "tool identifier" },
+  { re: /^(editor|skills|mcp|MCP|terminal|browser)$/, why: "tool identifier" },
+  {
+    re: /^(Claude Code|Codex|opencode|Cline( Usage-Billing)?|OpenRouter|Vercel AI Gateway|Ollama|LM Studio|Baseten|GitHub|GitLab)$/,
+    why: "product name"
+  },
+  { re: /^[~\/][\w.\/-]+$/, why: "path or file name" }
+];
+
+function byDesign(text) {
+  const hit = BY_DESIGN.find((r) => r.re.test(text));
+  return hit ? hit.why : null;
+}
+
 const COLLECT = `(() => {
   const en = (s) => /[A-Za-z]{3}/.test(s) && !/[\\u4e00-\\u9fa5]/.test(s);
   // A node counts as visible only if it is inside the viewport AND is the top-most element
@@ -51,16 +72,23 @@ const COLLECT = `(() => {
   };
   const out = { text: [], attr: [] };
   const seen = new Set();
+  // Never report the kit's own UI: the language row renders a button literally labelled "English",
+  // and the sidebar rows carry project folder names. This command exists to find strings *Cline*
+  // left in English, so counting our own labels would report a gap that is not there. Same selector
+  // the engine exempts.
+  const ours = (el) => !!(el && el.closest && el.closest('[data-ckit-ui],[data-ckit-feat]'));
   const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   let n;
   while ((n = w.nextNode())) {
     const t = (n.nodeValue || '').replace(/\\s+/g, ' ').trim();
     if (!t || !en(t) || t.length > 220) continue;
     const el = n.parentElement; if (!el) continue;
+    if (ours(el)) continue;
     if (!onScreen(el)) continue;
     if (!seen.has('T' + t)) { seen.add('T' + t); out.text.push(t); }
   }
   document.querySelectorAll('*').forEach((e) => {
+    if (ours(e)) return;
     for (const a of ['placeholder', 'aria-label', 'title']) {
       const v = e.getAttribute(a);
       if (!v || !en(v) || v.length > 220) continue;
@@ -128,38 +156,62 @@ async function run(port, opts) {
 
   // subtract what the dictionary already covers, so the output is only real gaps
   const dict = require("./dict").load(cfg.read());
+  // Scrub the per-screen walk FIRST, then derive the gap list from the scrubbed copy. The report file
+  // used to hold the raw strings while only the printed list was redacted - so the e-mail address that
+  // "Restore" sits next to went into the JSON the user is told is safe to attach. One redaction path,
+  // applied before anything is written or printed, is the only version of this that can be trusted.
+  let redactedCount = 0;
+  const scrub = (item) => {
+    const m = /^(title|aria-label|placeholder)::/.exec(item);
+    const bare = m ? item.slice(m[0].length) : item;
+    const safe = opts.raw ? { text: bare, changed: false } : redact(bare);
+    if (safe.changed) redactedCount++;
+    return m ? m[0] + safe.text : safe.text;
+  };
+  const screens = {};
+  for (const [name, v] of Object.entries(results)) {
+    screens[name] = { text: (v.text || []).map(scrub), attr: (v.attr || []).map(scrub) };
+  }
+
   const covered = new Set(Object.keys(dict.entries));
   const ruleRes = (dict.rules || []).map((r) => new RegExp(r.pattern));
   const uniq = new Map();
-  let redactedCount = 0;
-  for (const [screen, v] of Object.entries(results)) {
+  for (const [screen, v] of Object.entries(screens)) {
     for (const item of [...(v.attr || []), ...(v.text || [])]) {
       const bare = item.replace(/^(title|aria-label|placeholder)::/, "");
       if (covered.has(bare) || ruleRes.some((re) => re.test(bare))) continue;
-      const safe = opts.raw ? { text: bare, changed: false } : redact(bare);
-      if (safe.changed) redactedCount++;
-      if (!uniq.has(safe.text)) uniq.set(safe.text, screen);
+      if (!uniq.has(bare)) uniq.set(bare, screen);
     }
+  }
+
+  const gaps = new Map(), designed = new Map();
+  for (const [text, screen] of uniq) {
+    const why = byDesign(text);
+    if (why && !designed.has(text)) designed.set(text, screen + " · " + why);
+    else if (!why) gaps.set(text, screen);
   }
 
   cfg.ensureDirs();
   const file = path.join(cfg.configDir(), "audit-report.json");
   const report = opts.raw
-    ? results
+    ? screens
     : {
       "_note": "Redacted: e-mail addresses, file paths, URLs and long identifiers were replaced with " +
-        "placeholders before writing, because this file is meant to be attached to an issue. It still " +
-        "lists on-screen text, which can include session titles and project names - skim it before " +
-        "publishing. Re-run with --raw (local only) to get the unredacted walk.",
+        "placeholders before writing - in this file as well as on screen - because it is meant to be " +
+        "attached to an issue. It still lists on-screen text, which can include session titles and " +
+        "project names, so skim it before publishing. Re-run with --raw (local only) for the unredacted walk.",
       "_redactedEntries": redactedCount,
-      "screens": results
+      "screens": screens
     };
   fs.writeFileSync(file, JSON.stringify(report, null, 1), "utf8");
 
-  return { file, total: uniq.size, redacted: redactedCount, items: [...uniq.entries()] };
+  return {
+    file, total: gaps.size, redacted: redactedCount, items: [...gaps.entries()],
+    byDesign: [...designed.entries()]
+  };
 }
 
-module.exports = { run, redact };
+module.exports = { run, redact, byDesign };
 
 if (require.main === module) {
   const port = Number(process.argv[2] || cfg.read().port);

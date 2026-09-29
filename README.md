@@ -54,7 +54,7 @@ or both.
 * Windows 10/11 (macOS/Linux not supported yet — see [Limitations](#limitations))
 * [Node.js](https://nodejs.org) 20.10 or newer (global `WebSocket` and `fetch`) — not needed if you use the
   portable zip, which bundles its own runtime
-* The Cline desktop app installed (verified against v0.0.32)
+* The Cline desktop app installed (verified against v0.0.37)
 
 ## Install
 
@@ -176,7 +176,7 @@ The row is added by this kit — Cline has no language setting of its own. Turn 
 * **`language-picker`** (on by default) — the Interface language row inside Cline's own Settings page.
   See [Choosing a language](#choosing-a-language).
 * **locale packs** (`dictionaries/<locale>.json`) — whole-string text replacement only, so model
-  names, provider names, tool identifiers and code cannot be mangled. The corpus is 476 strings,
+  names, provider names, tool identifiers and code cannot be mangled. The corpus is 484 strings,
   24 anchored pattern rules and 6 prefix rules, built by combining a UI walk with extraction from the
   app's own source. Five dictionaries ship: **zh-CN** (reference, proofread against the running app),
   **zh-TW**, **ja**, **ko**, **vi** - complete but machine-assisted and *not* reviewed by native

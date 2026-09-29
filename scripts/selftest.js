@@ -315,6 +315,29 @@ test("only Cline's own webview pages get the payload", () => {
   assert.ok(cdp.isClinePage("https://anything.example/", "*"), "'*' is the documented escape hatch");
 });
 
+// ---------------------------------------------------------------- audit output
+test("the audit separates real gaps from strings that stay English on purpose", () => {
+  const audit = require("../src/audit");
+  assert.strictEqual(audit.byDesign("read_files"), "tool identifier");
+  assert.strictEqual(audit.byDesign("fetch_web_content"), "tool identifier");
+  assert.strictEqual(audit.byDesign("Claude Code"), "product name");
+  assert.strictEqual(audit.byDesign("<e-mail>"), "redacted user content");
+  assert.strictEqual(audit.byDesign("~/.ssh/id_ed25519"), "path or file name");
+  // What matters is what the classifier must NOT swallow - every one of these is a real 0.0.37 gap.
+  ["Providers", "Restore", "Enable all builtin tools", "No builtin tools found.",
+  "Loading schedules...", "Speak instead of typing: the microphone in chat"].forEach((s) =>
+    assert.strictEqual(audit.byDesign(s), null, "real gap hidden by the classifier: " + s));
+});
+
+test("redaction covers what the report file will contain", () => {
+  const audit = require("../src/audit");
+  const r = audit.redact("ping someone@example.com about D:\\work\\proj using aaaaaaaaaaaaaaaaaaaaaaaaaa");
+  assert.ok(!/example\.com/.test(r.text), "e-mail survived redaction");
+  assert.ok(!/work/.test(r.text), "windows path survived redaction");
+  assert.ok(!/aaaa/.test(r.text), "long identifier survived redaction");
+  assert.ok(r.changed);
+});
+
 // ---------------------------------------------------------------- payload version
 test("payload version is stable and reacts to content, not to call order", () => {
   const conf = { clinePath: "D:\\Programs\\Cline\\cline-app.exe", dictionary: "zh-CN", features: {}, featureHide: [] };

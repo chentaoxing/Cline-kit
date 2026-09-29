@@ -1,9 +1,9 @@
 {
- "version": 7,
+ "version": 8,
  "language": "zh-TW",
  "label": "繁體中文",
- "clineVersion": "0.0.32",
- "updated": "2026-09-21",
+ "clineVersion": "0.0.37",
+ "updated": "2026-09-29",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English. Same 476 strings as zh-CN, localised for Taiwan software usage (外掛程式 / 市集 / 智慧代理 / 重新整理 / 匯入) with character-sense review rather than a mechanical simplified-to-traditional swap. Terminology cross-checked against the official VS Code zh-hant language pack (MIT) - see docs/terminology.md.",
  "entries": {
   "Session": "會話",
@@ -481,7 +481,15 @@
   "Work with issues, pull requests, and repositories on GitHub.": "在 GitHub 上處理 issue、拉取請求與程式庫。",
   "Working directory": "工作目錄",
   "You're already running the latest version of Cline.": "您已經在使用最新版本的 Cline。",
-  "You're up to date": "已是最新版本"
+  "You're up to date": "已是最新版本",
+  "Providers": "服務商",
+  "Restore": "復原",
+  "Speak instead of typing: the microphone in chat transcribes your voice with the model chosen here. Text appears as you speak; Stop ends the live session.": "用語音代替輸入：聊天裡的麥克風會用這裡所選的模型轉寫你的語音。你說話時文字即時出現，點「停止」結束這次即時會話。",
+  "None of your configured providers offer streaming speech-to-text models": "你已配置的服務商都不提供串流語音轉文字模型",
+  "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "接入一個支援串流轉寫的服務商（例如 Vercel AI Gateway），這一頁會自動解鎖。",
+  "Loading schedules...": "正在載入排程…",
+  "Enable all builtin tools": "啟用全部內建工具",
+  "No builtin tools found.": "找不到內建工具。"
  },
  "prefixes": [
   {

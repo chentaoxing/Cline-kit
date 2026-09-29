@@ -177,9 +177,11 @@ console.log("source strings still untranslated:", still.length);
 still.slice(0, 25).forEach((t) => console.log("   - " + t.slice(0, 80)));
 
 if (!dry && added) {
-  dict.version = 3;
+  // Never hardcode these again: the script used to write `version = 3` and `clineVersion = "0.0.32"`
+  // literally, which quietly rewound a dictionary that had already moved past both.
+  dict.version = Number(dict.version || 0) + 1;
   dict.updated = new Date().toISOString().slice(0, 10);
-  dict.clineVersion = "0.0.32";
+  if (process.env.CLINE_VERSION) dict.clineVersion = process.env.CLINE_VERSION;
   dict.source = "dictionaries/zh-CN.json extended with strings extracted from apps/examples/desktop-app/webview";
   fs.writeFileSync(DICT, JSON.stringify(dict, null, 1) + "\n", "utf8");
   console.log("wrote", DICT, "version", dict.version, "entries", Object.keys(dict.entries).length);

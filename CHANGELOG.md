@@ -6,6 +6,38 @@ each `dictionaries/<locale>.json` rather than here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Dictionaries re-calibrated for Cline 0.0.37** (the app moved from 0.0.32 on this machine). A fresh
+  `ckit audit` walk found eight strings the release added - mostly the new streaming speech-to-text
+  page, plus `Providers`, `Restore`, `Loading schedules...`, `Enable all builtin tools` and
+  `No builtin tools found.` - and all eight went into **every** locale (484 entries each; zh-CN v11,
+  zh-TW v8, ja/ko/vi v7). Re-running the terminology cross-check afterwards produced a single hit among
+  them, and it is the documented house term (`session` → 會話), not a new defect.
+- `ckit audit` now separates **gaps** from **strings that stay English on purpose**. Tool identifiers
+  (`read_files`, `ask_question`, …), product names (`Claude Code`, `Codex`, `Vercel AI Gateway`, …),
+  paths and redacted user content are counted and printed under their own heading instead of inflating
+  the headline number. On this machine that turned 28 "untranslated strings" into 8, and the remaining
+  eight are the user's own session titles and model names - which no rule can recognise generically, so
+  they stay visible rather than silently filtered.
+
+### Fixed
+
+- **`ckit audit` wrote the unredacted walk to disk.** The printed list was scrubbed, the `_note` inside
+  `audit-report.json` claimed the file was redacted too, and the `screens` object it described held the
+  raw strings - so the account e-mail sitting next to `Restore` went into the file the README tells you
+  is safe to attach to an issue. Redaction now happens once, before anything is written or printed, and
+  a selftest pins that an e-mail, a Windows path and a long identifier cannot survive it.
+- The audit also reported **the kit's own UI** as untranslated text: the language row renders a button
+  literally labelled `English`, which showed up as a gap on every settings walk. It now skips
+  `[data-ckit-ui]` / `[data-ckit-feat]` subtrees, the same exemption the engine applies.
+- `scripts/merge-source-keys.js` used to write `version = 3` and `clineVersion = "0.0.32"` as literals,
+  quietly rewinding a dictionary that had moved past both. It now increments the version it found and
+  takes the app version from `CLINE_VERSION` instead of guessing.
+- `docs/terminology.md` reported "zh-TW 6, ja 5, ko 8, vi ~10" divergences, which was the number of
+  samples the report *prints*, not the totals it finds (69 / 38 / 59 / 51). Corrected, with the
+  distinction spelled out so the next reader does not confuse them either.
+
 ### Fixed
 
 - **`ckit start --restart` no longer leaves Cline's hub behind.** The restart killed `cline-app.exe`

@@ -1,9 +1,9 @@
 {
- "version": 6,
+ "version": 7,
  "language": "vi",
  "label": "Vietnamese",
- "clineVersion": "0.0.32",
- "updated": "2026-09-21",
+ "clineVersion": "0.0.37",
+ "updated": "2026-09-29",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "Phiên",
@@ -481,7 +481,15 @@
   "Work with issues, pull requests, and repositories on GitHub.": "Làm việc với issue, pull request và kho mã nguồn trên GitHub.",
   "Working directory": "Thư mục làm việc",
   "You're already running the latest version of Cline.": "Bạn đang chạy phiên bản Cline mới nhất.",
-  "You're up to date": "Bạn đã ở phiên bản mới nhất"
+  "You're up to date": "Bạn đã ở phiên bản mới nhất",
+  "Providers": "Nhà cung cấp",
+  "Restore": "Khôi phục",
+  "Speak instead of typing: the microphone in chat transcribes your voice with the model chosen here. Text appears as you speak; Stop ends the live session.": "Nói thay vì gõ: micrô trong trò chuyện sẽ chuyển giọng nói của bạn thành văn bản bằng mô hình đã chọn ở đây. Văn bản hiện ra khi bạn nói; Dừng sẽ kết thúc phiên trực tiếp.",
+  "None of your configured providers offer streaming speech-to-text models": "Không có nhà cung cấp đã cấu hình nào cung cấp mô hình chuyển giọng nói trực tiếp thành văn bản",
+  "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "Kết nối một nhà cung cấp có mô hình chuyển đổi trực tiếp — ví dụ: Vercel AI Gateway — và trang này sẽ tự động mở khoá.",
+  "Loading schedules...": "Đang tải lịch biểu...",
+  "Enable all builtin tools": "Bật tất cả công cụ tích hợp",
+  "No builtin tools found.": "Không tìm thấy công cụ tích hợp."
  },
  "prefixes": [
   {

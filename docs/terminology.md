@@ -35,12 +35,18 @@ time, so there is nothing to download. JetBrains' localization resources are not
 
 ## What the check found
 
-Whole-label comparisons across 476 strings: **zh-TW 6, ja 5, ko 8, vi ~10** divergences, out of 169–236
-comparable strings per locale. After reading every one of them, exactly **one** was a defect:
+Whole-label comparison, re-run on 2026-09-29 against the current 484-string corpus: **zh-TW 69, ja 38,
+ko 59, vi 51** divergences out of 176–240 comparable strings per locale. Read every one of them on the
+first pass (476 strings, when the counts were 6/5/8/~10 because the report only *prints* the top six per
+locale — the totals were always larger; don't confuse the two). Exactly **one** was a defect:
 
 - **zh-TW used both 發送 and 送出 for "send".** Fixed to 傳送 in four strings (`Send message`,
   `Send (Enter)`, notification text, Gmail description). 傳送 is what a zh-TW user sees in Microsoft
   and Google products for the send action, and more importantly the dictionary now agrees with itself.
+
+Re-running it after the Cline 0.0.37 additions produced one hit among the eight new strings, and it is
+the house term below (`session` → 會話, where VS Code zh-hant uses 工作階段) - a deliberate difference,
+not a new defect.
 
 Everything else below is a deliberate choice, not an oversight.
 
