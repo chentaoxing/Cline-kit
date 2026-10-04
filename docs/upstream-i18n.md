@@ -1,14 +1,14 @@
 # Upstream i18n status
 
-What we asked Cline for, what we built ourselves, and where it stands. Last updated 2026-09-21.
+What we asked Cline for, what we built ourselves, and where it stands. Last updated 2026-10-04.
 
 ## Existing upstream threads (do not file duplicates)
 
 | Thread | Scope | State |
 | --- | --- | --- |
-| [#12518 — [Feature Request] 添加中文界面支持 / Add Chinese (Simplified) Language Support](https://github.com/cline/cline/issues/12518) | Chinese UI overall; community comments ask for **Cline Desktop** coverage | open, 7 comments, last activity 2026-09-20 |
+| [#12518 — [Feature Request] 添加中文界面支持 / Add Chinese (Simplified) Language Support](https://github.com/cline/cline/issues/12518) | Chinese UI overall; community comments ask for **Cline Desktop** coverage | open, 14 comments, last activity 2026-10-04 — we answered all six community voices in the thread |
 | [#13811 — Localize the VS Code extension (en, 简体中文, Español, Русский, 한국어)](https://github.com/cline/cline/pull/13811) | **VS Code extension only.** Adds `@cline/i18n` (i18next + JSON catalogues, 18 namespaces, ~1,258 keys × 5 locales), a `Display Language` setting, and `bun run translate -- --lang <locale>` | open, **`CONFLICTING` against main** as of 2026-09-21; `@cline/i18n` is therefore not merged and nothing can build on it |
-| [#14337 — feat(desktop): add an interface-language setting to the desktop app](https://github.com/cline/cline/pull/14337) | **Desktop app, self-contained.** i18n foundation inside `apps/examples/desktop-app/webview` + a Language row in its own Settings + 5 locale catalogues (484 strings each) as data | ours, open as a draft, `MERGEABLE`, no review yet |
+| [#14337 — feat(desktop): add an interface-language setting to the desktop app](https://github.com/cline/cline/pull/14337) | **Desktop app, self-contained.** i18n foundation inside `apps/examples/desktop-app/webview` + a Language row in its own Settings + 5 locale catalogues (484 strings each) as data | ours, open as a draft, **`CONFLICTING` against main** as of 2026-10-04, no review yet |
 
 We stopped waiting on #13811. It conflicts with `main` today and the desktop app has no i18n
 dependency at all, so #14337 deliberately depends on nothing outside `apps/examples/desktop-app`. If
@@ -50,6 +50,22 @@ keeping their NOTICE attribution.
 * [Comment on #13811](https://github.com/cline/cline/pull/13811#issuecomment-5747674963) and its
   [correction](https://github.com/cline/cline/pull/13811#issuecomment-5747750921), which offers to open the
   desktop-webview port as a follow-up PR.
+* On 2026-10-04 we answered **every community voice in #12518 individually**, each reply aimed at what
+  that person actually asked for, and pointed them at `cline-kit` as the interim - with the caveats
+  stated rather than glossed over (Windows only, dictionaries calibrated against 0.0.37, an overlay is a
+  downgrade and upstream is still the real fix):
+  [@liangneason](https://github.com/cline/cline/issues/12518#issuecomment-5980527668) — UI strings and
+  "reply in Chinese" are separate concerns, the latter being `~/.cline/rules/*.md`, which the kit does
+  not touch;
+  [@MoJo-Spy](https://github.com/cline/cline/issues/12518#issuecomment-5980527661) — each of their Desktop
+  asks (persisted switcher, coverage, unified i18n) answered one by one;
+  [@Adgerr](https://github.com/cline/cline/issues/12518#issuecomment-5980527653);
+  [@13111655587xl-jpg](https://github.com/cline/cline/issues/12518#issuecomment-5980527833) — told plainly
+  that a Windows-only overlay is no help on macOS, and routed to #14337 for contributing translations;
+  [@kesulxx](https://github.com/cline/cline/issues/12518#issuecomment-5980527676) — their v0.0.39
+  binary/config findings agreed with, `ckit audit` offered as the operational answer to their "breaks on
+  every Cline update" objection, and the 0.0.37 calibration stated up front;
+  [@Muss0504](https://github.com/cline/cline/issues/12518#issuecomment-5980551652) — the original requester.
 
 We deliberately did **not** open a new issue: #12518 already tracks the request, and a duplicate would
 have split the discussion.
@@ -82,7 +98,10 @@ upstreaming - #14337 already ships it as data.
 
 ## Where this stands now
 
-* The desktop port is **open as our own PR** (#14337) rather than blocked behind #13811.
+* The desktop port is **open as our own PR** (#14337) rather than blocked behind #13811 - but it went
+  **`CONFLICTING` against main** somewhere between 2026-09-21 and 2026-10-04, and it is still a draft
+  with no review, so it needs a rebase before upstream can act on it. This matters because the
+  2026-10-04 replies on #12518 point people at it.
 * Extra locales are **already shipped** (five), as a pipeline rather than a workload -
   `scripts/new-locale.js` → translate → `apply-locale.js` → `npm test` → `locale-switch-check.js`.
 * Still not done, still worth doing:
