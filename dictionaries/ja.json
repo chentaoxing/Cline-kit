@@ -1,9 +1,9 @@
 {
- "version": 7,
+ "version": 8,
  "language": "ja",
  "label": "Japanese",
- "clineVersion": "0.0.37",
- "updated": "2026-09-29",
+ "clineVersion": "0.0.43",
+ "updated": "2026-10-04",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "セッション",
@@ -489,7 +489,46 @@
   "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "ストリーミング文字起こしモデルに対応したプロバイダー（例：Vercel AI Gateway）を接続すると、このページは自動的に利用できるようになります。",
   "Loading schedules...": "スケジュールを読み込み中…",
   "Enable all builtin tools": "組み込みツールをすべて有効化",
-  "No builtin tools found.": "組み込みツールが見つかりません。"
+  "No builtin tools found.": "組み込みツールが見つかりません。",
+  "An obscure high-memory report lands in Slack. Cline pulls the thread, correlates it with the matching Sentry errors and related Linear issues, and writes up a root-cause analysis with a fix plan.": "Slack に見慣れない高メモリのレポートが届きます。Cline がスレッドを取得し、該当する Sentry エラーと関連する Linear issue を突き合わせて、修正案付きの根本原因分析を書き上げます。",
+  "Connect Cline to your apps": "Cline をアプリに接続",
+  "Debug production incidents": "本番環境のインシデントを調査",
+  "Diagnostics exported": "診断情報をエクスポートしました",
+  "Filter by category": "カテゴリで絞り込む",
+  "Launch and market what you build": "作ったものを公開して広める",
+  "Loading account": "アカウントを読み込み中",
+  "MCP server": "MCP サーバー",
+  "Model providers": "モデルプロバイダー",
+  "Open this release on GitHub": "このリリースを GitHub で開く",
+  "Organize your day": "1 日を組み立てる",
+  "Parallel sub-agents": "並列サブエージェント",
+  "Refresh connectors": "コネクタを更新",
+  "Run product from your desktop": "デスクトップからプロダクトを運用",
+  "SSH remotes": "SSH リモート",
+  "Search all connectors": "すべてのコネクタを検索",
+  "Search installed connectors": "インストール済みのコネクタを検索",
+  "Ship a side project, then have Cline generate the teaser images and video, upload it to YouTube, and write the LinkedIn and Reddit launch posts.": "サイドプロジェクトを公開し、Cline にティザー画像と動画を生成させて YouTube にアップロードし、LinkedIn と Reddit のローンチ投稿まで書かせます。",
+  "Start with a morning brief: Cline reads overnight email and Slack threads, lays out today's calendar, drafts the replies that need you, and flags what to prep before each meeting.": "朝のブリーフから始めます。Cline が夜間のメールと Slack スレッドを読み、今日の予定を並べ、返信が必要なものの下書きを作り、各会議の前に準備すべきことを示します。",
+  "Streaming not supported": "ストリーミングは未対応",
+  "Summarize the conversation to free up context": "会話を要約してコンテキストを空ける",
+  "Switched to browser speech recognition": "ブラウザの音声認識に切り替えました",
+  "The app stays on your laptop while Cline works on any machine you can SSH into.": "アプリは手元のノート PC に置いたまま、Cline は SSH で入れる任意のマシンで作業します。",
+  "The voice provider could not be reached. Click the microphone and repeat any missing speech. Browser recognition may also require internet access.": "音声プロバイダーに接続できませんでした。マイクをクリックして、足りない部分を言い直してください。ブラウザ認識にはインターネット接続が必要な場合もあります。",
+  "Turn a Notion spec into scoped Linear issues, keep them updated as work lands, and post the weekly status to Slack without leaving Cline.": "Notion の仕様を範囲の明確な Linear issue に分割し、作業の進行に合わせて更新し、Cline から離れずに週次の進捗を Slack に投稿します。",
+  "Uncommitted changes": "未コミットの変更",
+  "Work anywhere, in parallel": "どこでも並行して作業",
+  "Your branch's PR, merge state, and CI checks, right in the composer.": "ブランチの PR、マージ状態、CI チェックをコンポーザーに表示します。",
+  "Delegate several tasks in one session and they run at the same time.": "1 つのセッションで複数のタスクを委任すると、同時に実行されます。",
+  "Connectors": "コネクタ",
+  "Beta": "ベータ",
+  "The selected model does not report reasoning support": "選択したモデルは推論対応を報告していません",
+  "Prompt:": "プロンプト：",
+  "Last run:": "前回の実行：",
+  "Last result:": "前回の結果：",
+  "Next run:": "次回の実行：",
+  "Model:": "モデル：",
+  "Every day": "毎日",
+  "Weekdays": "平日"
  },
  "prefixes": [
   {
@@ -515,6 +554,14 @@
   {
    "from": "Favorite ",
    "to": "お気に入り "
+  },
+  {
+   "from": "Daily · ",
+   "to": "毎日 · "
+  },
+  {
+   "from": "Once · ",
+   "to": "1 回 · "
   }
  ],
  "rules": [

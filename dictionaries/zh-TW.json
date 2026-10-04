@@ -1,9 +1,9 @@
 {
- "version": 8,
+ "version": 9,
  "language": "zh-TW",
  "label": "繁體中文",
- "clineVersion": "0.0.37",
- "updated": "2026-09-29",
+ "clineVersion": "0.0.43",
+ "updated": "2026-10-04",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English. Same 476 strings as zh-CN, localised for Taiwan software usage (外掛程式 / 市集 / 智慧代理 / 重新整理 / 匯入) with character-sense review rather than a mechanical simplified-to-traditional swap. Terminology cross-checked against the official VS Code zh-hant language pack (MIT) - see docs/terminology.md.",
  "entries": {
   "Session": "會話",
@@ -489,7 +489,46 @@
   "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "接入一個支援串流轉寫的服務商（例如 Vercel AI Gateway），這一頁會自動解鎖。",
   "Loading schedules...": "正在載入排程…",
   "Enable all builtin tools": "啟用全部內建工具",
-  "No builtin tools found.": "找不到內建工具。"
+  "No builtin tools found.": "找不到內建工具。",
+  "An obscure high-memory report lands in Slack. Cline pulls the thread, correlates it with the matching Sentry errors and related Linear issues, and writes up a root-cause analysis with a fix plan.": "Slack 裡出現一則高記憶體用量的可疑報告。Cline 會拉取該討論串，關聯對應的 Sentry 錯誤與相關 Linear issue，並寫出一份附修復方案的根因分析。",
+  "Connect Cline to your apps": "把 Cline 接到你的應用程式",
+  "Debug production incidents": "排查正式環境事故",
+  "Diagnostics exported": "診斷資訊已匯出",
+  "Filter by category": "依分類篩選",
+  "Launch and market what you build": "發表並推廣你的作品",
+  "Loading account": "正在載入帳號",
+  "MCP server": "MCP 伺服器",
+  "Model providers": "模型供應商",
+  "Open this release on GitHub": "在 GitHub 上檢視這個版本",
+  "Organize your day": "安排你的一天",
+  "Parallel sub-agents": "並行子智慧代理",
+  "Refresh connectors": "重新整理連接器",
+  "Run product from your desktop": "在桌面上營運產品",
+  "SSH remotes": "SSH 遠端主機",
+  "Search all connectors": "搜尋全部連接器",
+  "Search installed connectors": "搜尋已安裝的連接器",
+  "Ship a side project, then have Cline generate the teaser images and video, upload it to YouTube, and write the LinkedIn and Reddit launch posts.": "發表一個副業專案：讓 Cline 產生預告圖與影片、上傳到 YouTube，並寫好 LinkedIn 與 Reddit 的發布貼文。",
+  "Start with a morning brief: Cline reads overnight email and Slack threads, lays out today's calendar, drafts the replies that need you, and flags what to prep before each meeting.": "從一份晨間簡報開始：Cline 會讀取隔夜的郵件與 Slack 討論，列出今天的行事曆，起草需要你回覆的內容，並標出每場會議前要準備的事項。",
+  "Streaming not supported": "不支援串流",
+  "Summarize the conversation to free up context": "摘要對話以釋出上下文",
+  "Switched to browser speech recognition": "已切換到瀏覽器語音辨識",
+  "The app stays on your laptop while Cline works on any machine you can SSH into.": "應用程式留在你的筆電上，Cline 在你任何能 SSH 登入的機器上工作。",
+  "The voice provider could not be reached. Click the microphone and repeat any missing speech. Browser recognition may also require internet access.": "無法連線語音供應商。請點一下麥克風，重說一次缺漏的內容。瀏覽器辨識可能還需要網路連線。",
+  "Turn a Notion spec into scoped Linear issues, keep them updated as work lands, and post the weekly status to Slack without leaving Cline.": "把 Notion 裡的規格說明拆成範圍明確的 Linear issue，隨開發進度持續更新，並直接在 Cline 裡把每週進度發到 Slack。",
+  "Uncommitted changes": "未提交的變更",
+  "Work anywhere, in parallel": "隨處並行工作",
+  "Your branch's PR, merge state, and CI checks, right in the composer.": "你的分支對應的 PR、合併狀態與 CI 檢查，直接顯示在輸入框旁。",
+  "Delegate several tasks in one session and they run at the same time.": "在一個會話裡委派多個任務，它們會同時執行。",
+  "Connectors": "連接器",
+  "Beta": "測試版",
+  "The selected model does not report reasoning support": "所選模型未回報支援推理",
+  "Prompt:": "提示詞：",
+  "Last run:": "上次執行：",
+  "Last result:": "上次結果：",
+  "Next run:": "下次執行：",
+  "Model:": "模型：",
+  "Every day": "每天",
+  "Weekdays": "平日"
  },
  "prefixes": [
   {
@@ -515,6 +554,14 @@
   {
    "from": "Favorite ",
    "to": "加入收藏 "
+  },
+  {
+   "from": "Daily · ",
+   "to": "每天 · "
+  },
+  {
+   "from": "Once · ",
+   "to": "單次 · "
   }
  ],
  "rules": [

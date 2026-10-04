@@ -118,4 +118,4 @@ workflow 文件时必须同步改这里，否则 publish job 会失败。发布 
 
 * 仅 Windows；macOS/Linux 的注入通道不同，未实现。
 * 模型列表里每条模型的一句英文简介未覆盖（云端动态自由文本）。
-* 词典按 0.0.37 校准；Cline 升级后需重跑 `ckit audit` 补差量。
+* 词典按 0.0.43 校准；Cline 升级后需重跑 `ckit audit` 补差量。

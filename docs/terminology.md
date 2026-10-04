@@ -35,9 +35,9 @@ time, so there is nothing to download. JetBrains' localization resources are not
 
 ## What the check found
 
-Whole-label comparison, re-run on 2026-09-29 against the current 484-string corpus: **zh-TW 69, ja 38,
-ko 59, vi 51** divergences out of 176–240 comparable strings per locale. Read every one of them on the
-first pass (476 strings, when the counts were 6/5/8/~10 because the report only *prints* the top six per
+Whole-label comparison, re-run on 2026-10-04 against the current 523-string corpus (Cline 0.0.43):
+**zh-TW 76, ja 41, ko 65, vi 54** divergences out of 190–255 comparable strings per locale. Read every one of them
+on the first pass (476 strings, when the counts were 6/5/8/~10 because the report only *prints* the top six per
 locale — the totals were always larger; don't confuse the two). Exactly **one** was a defect:
 
 - **zh-TW used both 發送 and 送出 for "send".** Fixed to 傳送 in four strings (`Send message`,
@@ -47,6 +47,12 @@ locale — the totals were always larger; don't confuse the two). Exactly **one*
 Re-running it after the Cline 0.0.37 additions produced one hit among the eight new strings, and it is
 the house term below (`session` → 會話, where VS Code zh-hant uses 工作階段) - a deliberate difference,
 not a new defect.
+
+The 0.0.43 additions raised the totals to 76/41/65/54. Five of the new hits are the report matching a
+generic English word against a VS Code term, not a terminology mistake: `read` (the Japanese/Korean verb
+for reading mail, vs the Read tool's 読み取り/읽기), `issues` (Linear issues, vs VS Code's 問題 panel, where we
+keep `Linear issue` in English on purpose), and `report` (whether a model reports reasoning support, vs
+"report a problem"). None of them changed a translation.
 
 Everything else below is a deliberate choice, not an oversight.
 

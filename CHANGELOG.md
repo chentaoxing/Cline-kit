@@ -4,6 +4,57 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); dictionary data changes are versioned inside
 each `dictionaries/<locale>.json` rather than here.
 
+## [1.0.1] - 2026-10-04
+
+### Changed
+
+- **Dictionaries re-calibrated for Cline 0.0.43** (0.0.37 → 0.0.43 on this machine). Both collection
+  routes from `docs/dictionary-pipeline.zh-CN.md` were used: a live `ckit audit` walk against the
+  running 0.0.43 window, and `extract-source-keys.js` over the upstream webview at tag
+  `desktop-v0.0.43` (212 files scanned, 232 unique candidate strings, 202 already covered).
+
+  **39 strings went into every locale** (523 entries each; zh-CN v13, zh-TW v9, ja/ko/vi v8), and all
+  five now carry `clineVersion "0.0.43"`:
+
+  - customize page: `Connectors`, `Beta`, `MCP server`, `Model providers`, `Search installed
+    connectors`, `Search all connectors`, `Refresh connectors`, `Loading account`
+  - schedule page: `Prompt:`, `Last run:`, `Last result:`, `Next run:`, `Every day`, `Weekdays`
+  - voice and model picker: `Switched to browser speech recognition`, `The voice provider could not
+    be reached…`, `Summarize the conversation to free up context`, `Streaming not supported`,
+    `The selected model does not report reasoning support`
+  - `Uncommitted changes`, `Diagnostics exported`, `Open this release on GitHub`, `Filter by category`
+  - the new composio recipe and "What's new" copy (14 long strings)
+
+  Two **prefix** rules went in as well: `Daily · ` and `Once · `. The cadence line renders as the
+  single text node `Daily · 08:30 · Asia/Singapore`, which no entry can match - only a prefix can.
+  That is one reason the live walk dropped from 17 gaps to 7; the other eight were the labels above.
+
+  A handful of strings only the *source* extractor can see (`The selected model does not report
+  reasoning support`, the schedule labels, the single-word `Connectors` and `Beta`) never reach
+  `extract-source-keys.js` - they are ternary branches, or words the heuristic rejects as component
+  names - so they were added by hand, each with the file and line it comes from.
+
+- `ckit --help`, both READMEs, `docs/upstream-i18n.md` and `docs/RELEASE-CHECKLIST.md` still said
+  "484 strings / 6 prefixes / 0.0.37". They now say 523 / 8 / 0.0.43.
+
+### Left in English, on purpose
+
+These are what the live 0.0.43 walk still lists (7), and none is a localisation gap:
+
+- `ubuntu`, `LLM`, `cline schedule` - user data (SSH host, folder name, schedule title).
+- `MiMo-V2.6-Flash (free)`, `cline/cline-free/mimo-v2.6-flash` - model display name and model id.
+- `act` - the raw mode enum the schedule card prints via `{schedule.mode}`. Cline defines no label for
+  it, so translating it could disagree with Cline's own Plan/Act wording.
+- `pending at 2026/10/4 08:30:00` - `formatExecutionResult` interpolates a server-side status word
+  with a timestamp; there is no fixed sentence to translate.
+- `automation,review` - a placeholder example value in the routine form; still the one string the
+  source extractor reports as untranslated, and it should stay that way.
+
+### Known
+
+- The terminology cross-check totals moved to zh-TW 76 / ja 41 / ko 65 / vi 54. Five of the new hits
+  are generic-word false positives (`read`, `report`, `issues`); no translation was changed for them.
+
 ## [1.0.0] - 2026-09-29
 
 ### Changed

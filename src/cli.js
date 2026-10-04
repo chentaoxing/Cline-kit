@@ -50,7 +50,7 @@ Main feature
 
 Optional feature
   locale packs     dictionaries/<locale>.json - whole-string replacement only, so provider names,
-                   model names and code cannot be mangled. Bundled: zh-CN (reference, 484 entries),
+                   model names and code cannot be mangled. Bundled: zh-CN (reference, 523 entries),
                    zh-TW, ja, ko, vi, plus 'none' to leave Cline's own text alone.
                    Pick it INSIDE Cline: Settings -> Interface language (that row is added by this
                    kit, and clicking it applies within ~4 s without a restart). Or from here:

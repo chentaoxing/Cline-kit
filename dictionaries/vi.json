@@ -1,9 +1,9 @@
 {
- "version": 7,
+ "version": 8,
  "language": "vi",
  "label": "Vietnamese",
- "clineVersion": "0.0.37",
- "updated": "2026-09-29",
+ "clineVersion": "0.0.43",
+ "updated": "2026-10-04",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "Phiên",
@@ -489,7 +489,46 @@
   "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "Kết nối một nhà cung cấp có mô hình chuyển đổi trực tiếp — ví dụ: Vercel AI Gateway — và trang này sẽ tự động mở khoá.",
   "Loading schedules...": "Đang tải lịch biểu...",
   "Enable all builtin tools": "Bật tất cả công cụ tích hợp",
-  "No builtin tools found.": "Không tìm thấy công cụ tích hợp."
+  "No builtin tools found.": "Không tìm thấy công cụ tích hợp.",
+  "An obscure high-memory report lands in Slack. Cline pulls the thread, correlates it with the matching Sentry errors and related Linear issues, and writes up a root-cause analysis with a fix plan.": "Một báo cáo tốn nhiều bộ nhớ khó hiểu xuất hiện trong Slack. Cline lấy toàn bộ luồng thảo luận, đối chiếu với các lỗi Sentry tương ứng và issue Linear liên quan, rồi viết bản phân tích nguyên nhân gốc kèm kế hoạch khắc phục.",
+  "Connect Cline to your apps": "Kết nối Cline với ứng dụng của bạn",
+  "Debug production incidents": "Gỡ lỗi sự cố trên môi trường thật",
+  "Diagnostics exported": "Đã xuất thông tin chẩn đoán",
+  "Filter by category": "Lọc theo danh mục",
+  "Launch and market what you build": "Ra mắt và quảng bá sản phẩm bạn làm",
+  "Loading account": "Đang tải tài khoản",
+  "MCP server": "Máy chủ MCP",
+  "Model providers": "Nhà cung cấp mô hình",
+  "Open this release on GitHub": "Mở bản phát hành này trên GitHub",
+  "Organize your day": "Sắp xếp một ngày của bạn",
+  "Parallel sub-agents": "Các tác nhân con chạy song song",
+  "Refresh connectors": "Làm mới bộ kết nối",
+  "Run product from your desktop": "Vận hành sản phẩm ngay trên máy tính",
+  "SSH remotes": "Máy chủ từ xa SSH",
+  "Search all connectors": "Tìm kiếm mọi bộ kết nối",
+  "Search installed connectors": "Tìm kiếm bộ kết nối đã cài",
+  "Ship a side project, then have Cline generate the teaser images and video, upload it to YouTube, and write the LinkedIn and Reddit launch posts.": "Ra mắt một dự án phụ, để Cline tạo ảnh và video teaser, tải lên YouTube, rồi viết bài đăng ra mắt trên LinkedIn và Reddit.",
+  "Start with a morning brief: Cline reads overnight email and Slack threads, lays out today's calendar, drafts the replies that need you, and flags what to prep before each meeting.": "Bắt đầu bằng bản tin buổi sáng: Cline đọc email và các luồng Slack qua đêm, sắp lịch hôm nay, soạn trước những nội dung cần bạn trả lời và đánh dấu việc phải chuẩn bị cho từng cuộc họp.",
+  "Streaming not supported": "Không hỗ trợ truyền trực tuyến",
+  "Summarize the conversation to free up context": "Tóm tắt hội thoại để giải phóng ngữ cảnh",
+  "Switched to browser speech recognition": "Đã chuyển sang nhận dạng giọng nói của trình duyệt",
+  "The app stays on your laptop while Cline works on any machine you can SSH into.": "Ứng dụng vẫn nằm trên laptop của bạn trong khi Cline làm việc trên bất kỳ máy nào bạn SSH vào được.",
+  "The voice provider could not be reached. Click the microphone and repeat any missing speech. Browser recognition may also require internet access.": "Không kết nối được với nhà cung cấp giọng nói. Hãy bấm micro và nói lại phần còn thiếu. Nhận dạng trên trình duyệt có thể cần kết nối internet.",
+  "Turn a Notion spec into scoped Linear issues, keep them updated as work lands, and post the weekly status to Slack without leaving Cline.": "Chia bản đặc tả trên Notion thành các issue Linear có phạm vi rõ ràng, cập nhật liên tục theo tiến độ và đăng báo cáo tuần lên Slack mà không cần rời Cline.",
+  "Uncommitted changes": "Thay đổi chưa commit",
+  "Work anywhere, in parallel": "Làm việc song song ở mọi nơi",
+  "Your branch's PR, merge state, and CI checks, right in the composer.": "PR của nhánh bạn, trạng thái hợp nhất và kiểm tra CI, hiển thị ngay trong ô nhập.",
+  "Delegate several tasks in one session and they run at the same time.": "Giao nhiều việc trong một phiên và chúng chạy cùng lúc.",
+  "Connectors": "Bộ kết nối",
+  "Beta": "Bản beta",
+  "The selected model does not report reasoning support": "Mô hình đã chọn không báo hỗ trợ suy luận",
+  "Prompt:": "Lời nhắc:",
+  "Last run:": "Lần chạy trước:",
+  "Last result:": "Kết quả trước:",
+  "Next run:": "Lần chạy kế tiếp:",
+  "Model:": "Mô hình:",
+  "Every day": "Mỗi ngày",
+  "Weekdays": "Ngày trong tuần"
  },
  "prefixes": [
   {
@@ -515,6 +554,14 @@
   {
    "from": "Favorite ",
    "to": "Yêu thích "
+  },
+  {
+   "from": "Daily · ",
+   "to": "Mỗi ngày · "
+  },
+  {
+   "from": "Once · ",
+   "to": "Một lần · "
   }
  ],
  "rules": [

@@ -8,7 +8,7 @@ What we asked Cline for, what we built ourselves, and where it stands. Last upda
 | --- | --- | --- |
 | [#12518 — [Feature Request] 添加中文界面支持 / Add Chinese (Simplified) Language Support](https://github.com/cline/cline/issues/12518) | Chinese UI overall; community comments ask for **Cline Desktop** coverage | open, 14 comments, last activity 2026-10-04 — we answered all six community voices in the thread |
 | [#13811 — Localize the VS Code extension (en, 简体中文, Español, Русский, 한국어)](https://github.com/cline/cline/pull/13811) | **VS Code extension only.** Adds `@cline/i18n` (i18next + JSON catalogues, 18 namespaces, ~1,258 keys × 5 locales), a `Display Language` setting, and `bun run translate -- --lang <locale>` | open, **`CONFLICTING` against main** as of 2026-09-21; `@cline/i18n` is therefore not merged and nothing can build on it |
-| [#14337 — feat(desktop): add an interface-language setting to the desktop app](https://github.com/cline/cline/pull/14337) | **Desktop app, self-contained.** i18n foundation inside `apps/examples/desktop-app/webview` + a Language row in its own Settings + 5 locale catalogues (484 strings each) as data | ours, open as a draft, **`CONFLICTING` against main** as of 2026-10-04, no review yet |
+| [#14337 — feat(desktop): add an interface-language setting to the desktop app](https://github.com/cline/cline/pull/14337) | **Desktop app, self-contained.** i18n foundation inside `apps/examples/desktop-app/webview` + a Language row in its own Settings + 5 locale catalogues (523 strings each) as data | ours, open as a draft, **`CONFLICTING` against main** as of 2026-10-04, no review yet |
 
 We stopped waiting on #13811. It conflicts with `main` today and the desktop app has no i18n
 dependency at all, so #14337 deliberately depends on nothing outside `apps/examples/desktop-app`. If
@@ -18,8 +18,8 @@ dependency at all, so #14337 deliberately depends on nothing outside `apps/examp
 
 **The desktop app IS in the public monorepo**: [`apps/examples/desktop-app`](https://github.com/cline/cline/tree/main/apps/examples/desktop-app)
 — Tauri 2 (`src-tauri/`) plus a Next.js webview (`webview/`). When this was written its `package.json`
-version was `0.0.32`, the build shipping on 2026-09-20; the app has moved since (0.0.37 on this machine
-as of 2026-09-29), and the finding still holds: **no i18n dependency at all** (no i18next / intl /
+version was `0.0.32`, the build shipping on 2026-09-20; the app has moved since (0.0.43 on this machine
+as of 2026-10-04), and the finding still holds: **no i18n dependency at all** (no i18next / intl /
 locale files), which is why the UI is English-only and why forcing `--lang=zh-CN` does nothing.
 
 An earlier version of this document claimed the desktop app was not in the repository (we had only looked
@@ -37,7 +37,7 @@ groups in the sidebar being the main one.
 | --- | --- | --- | --- | --- |
 | `JACK5920/cline-desktop-zh` | 09-15 / 09-16 | ≈531 (418 texts, 94 attrs, 12+5 patterns, 2 whole-element) | DOM injection + silent vbs launcher | MIT |
 | `ExSchwi/cline-desktop-zh-cn` | 09-17 / 09-19 | 545 entries + 98 explicitly skipped | DOM injection + **per-Cline-version rule files** (`0.0.30`, `0.0.32`) with a documented fallback strategy, generated dictionary | Apache-2.0 (NOTICE: derived from upstream source) |
-| this project | 09-20 → 09-29 | 484 whole-string entries + 6 prefixes + 24 rules, in **5 locales** (zh-CN reference, zh-TW, ja, ko, vi) | DOM injection + reversible installer covering every launch path, path autodetection, random loopback port, validated per-locale remote updates (regexes timed, not just shaped), an in-app language picker, `ckit doctor`, and a dependency-free selftest | MIT |
+| this project | 09-20 → 10-04 | 523 whole-string entries + 8 prefixes + 24 rules, in **5 locales** (zh-CN reference, zh-TW, ja, ko, vi) | DOM injection + reversible installer covering every launch path, path autodetection, random loopback port, validated per-locale remote updates (regexes timed, not just shaped), an in-app language picker, `ckit doctor`, and a dependency-free selftest | MIT |
 
 All three are permissively licensed, so approaches can be studied and reused with attribution. Note that
 ExSchwi's dictionary is derived from upstream (Apache-2.0) source, so reusing its *content* requires
@@ -87,7 +87,7 @@ have split the discussion.
 
 ## Corpus on offer
 
-`dictionaries/zh-CN.json` — 484 whole-string entries + 6 prefix rules + 24 pattern rules, produced by
+`dictionaries/zh-CN.json` — 523 whole-string entries + 8 prefix rules + 24 pattern rules, produced by
 enumerating the rendered DOM of every desktop screen (sidebar, composer, search palette,
 workspace/folder picker, model + provider selectors, schedule page, customize page including the built-in
 tool descriptions, and all settings sub-pages), then merged with keys extracted from the app's own source.

@@ -1,9 +1,9 @@
 {
- "version": 7,
+ "version": 8,
  "language": "ko",
  "label": "Korean",
- "clineVersion": "0.0.37",
- "updated": "2026-09-29",
+ "clineVersion": "0.0.43",
+ "updated": "2026-10-04",
  "note": "Whole-string exact matches only. Rules run before prefixes; $1..$9 come from rule capture groups. Provider, model and product names are intentionally left in English.",
  "entries": {
   "Session": "세션",
@@ -489,7 +489,46 @@
   "Connect a provider with streaming transcription models — for example Vercel AI Gateway — and this page unlocks automatically.": "스트리밍 변환 모델을 지원하는 제공자(예: Vercel AI Gateway)를 연결하면 이 페이지가 자동으로 잠금 해제됩니다.",
   "Loading schedules...": "스케줄 불러오는 중...",
   "Enable all builtin tools": "내장 도구 모두 활성화",
-  "No builtin tools found.": "내장 도구를 찾을 수 없습니다."
+  "No builtin tools found.": "내장 도구를 찾을 수 없습니다.",
+  "An obscure high-memory report lands in Slack. Cline pulls the thread, correlates it with the matching Sentry errors and related Linear issues, and writes up a root-cause analysis with a fix plan.": "Slack에 눈에 띄는 고메모리 리포트가 올라옵니다. Cline이 스레드를 가져와 해당 Sentry 오류와 관련 Linear 이슈를 연결하고, 수정 계획이 담긴 근본 원인 분석을 작성합니다.",
+  "Connect Cline to your apps": "Cline을 앱에 연결",
+  "Debug production incidents": "프로덕션 장애 디버깅",
+  "Diagnostics exported": "진단 정보를 내보냈습니다",
+  "Filter by category": "카테고리로 필터",
+  "Launch and market what you build": "만든 것을 출시하고 알리기",
+  "Loading account": "계정 불러오는 중",
+  "MCP server": "MCP 서버",
+  "Model providers": "모델 제공자",
+  "Open this release on GitHub": "GitHub에서 이 릴리스 열기",
+  "Organize your day": "하루 계획 세우기",
+  "Parallel sub-agents": "병렬 하위 에이전트",
+  "Refresh connectors": "커넥터 새로 고침",
+  "Run product from your desktop": "데스크톱에서 제품 운영",
+  "SSH remotes": "SSH 원격",
+  "Search all connectors": "모든 커넥터 검색",
+  "Search installed connectors": "설치된 커넥터 검색",
+  "Ship a side project, then have Cline generate the teaser images and video, upload it to YouTube, and write the LinkedIn and Reddit launch posts.": "사이드 프로젝트를 출시하고, Cline이 티저 이미지와 영상을 만들어 YouTube에 올리고 LinkedIn과 Reddit 출시 글까지 작성하게 하세요.",
+  "Start with a morning brief: Cline reads overnight email and Slack threads, lays out today's calendar, drafts the replies that need you, and flags what to prep before each meeting.": "아침 브리핑으로 시작하세요. Cline이 밤사이의 이메일과 Slack 스레드를 읽고, 오늘 일정을 정리하고, 답장이 필요한 내용의 초안을 쓰고, 각 회의 전에 준비할 것을 표시합니다.",
+  "Streaming not supported": "스트리밍 지원 안 함",
+  "Summarize the conversation to free up context": "대화를 요약해 컨텍스트 확보",
+  "Switched to browser speech recognition": "브라우저 음성 인식으로 전환했습니다",
+  "The app stays on your laptop while Cline works on any machine you can SSH into.": "앱은 노트북에 그대로 두고, Cline은 SSH로 접속할 수 있는 어떤 머신에서든 작업합니다.",
+  "The voice provider could not be reached. Click the microphone and repeat any missing speech. Browser recognition may also require internet access.": "음성 제공자에 연결할 수 없습니다. 마이크를 클릭해 빠진 부분을 다시 말해 주세요. 브라우저 인식은 인터넷 연결이 필요할 수도 있습니다.",
+  "Turn a Notion spec into scoped Linear issues, keep them updated as work lands, and post the weekly status to Slack without leaving Cline.": "Notion 스펙을 범위가 명확한 Linear 이슈로 나누고, 작업이 진행되는 대로 갱신하며, Cline을 벗어나지 않고 주간 현황을 Slack에 올립니다.",
+  "Uncommitted changes": "커밋되지 않은 변경 사항",
+  "Work anywhere, in parallel": "어디서나 병렬로 작업",
+  "Your branch's PR, merge state, and CI checks, right in the composer.": "브랜치의 PR, 병합 상태, CI 검사를 컴포저에서 바로 확인할 수 있습니다.",
+  "Delegate several tasks in one session and they run at the same time.": "한 세션에서 여러 작업을 위임하면 동시에 실행됩니다.",
+  "Connectors": "커넥터",
+  "Beta": "베타",
+  "The selected model does not report reasoning support": "선택한 모델이 추론 지원을 보고하지 않습니다",
+  "Prompt:": "프롬프트:",
+  "Last run:": "마지막 실행:",
+  "Last result:": "마지막 결과:",
+  "Next run:": "다음 실행:",
+  "Model:": "모델:",
+  "Every day": "매일",
+  "Weekdays": "평일"
  },
  "prefixes": [
   {
@@ -515,6 +554,14 @@
   {
    "from": "Favorite ",
    "to": "즐겨찾기 "
+  },
+  {
+   "from": "Daily · ",
+   "to": "매일 · "
+  },
+  {
+   "from": "Once · ",
+   "to": "1회 · "
   }
  ],
  "rules": [

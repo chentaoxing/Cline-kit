@@ -144,7 +144,42 @@ const MAP = {
   "Work with issues, pull requests": "在 GitHub 上处理 issue、拉取请求与代码库。",
   "Working directory": "工作目录",
   "You're already running the latest": "你已经在运行最新版 Cline。",
-  "You're up to date": "已是最新版本"
+  "You're up to date": "已是最新版本",
+
+  // --- Added 2026-10-04, Cline 0.0.43 recalibration -------------------------------------------
+  // Found by `extract-source-keys.js` against desktop-v0.0.43 and cross-checked with `ckit audit`
+  // on a live 0.0.43 window. Nothing here is a guess at wording: every key is the exact English
+  // string the source renders.
+  "An obscure high-memory report lands in Slack": "Slack 里出现一条高内存占用的可疑报告。Cline 会拉取该讨论串，关联对应的 Sentry 错误与相关 Linear issue，并写出一份带修复方案的根因分析。",
+  "Connect Cline to your apps": "把 Cline 接入你的应用",
+  "Debug production incidents": "排查线上事故",
+  "Diagnostics exported": "诊断信息已导出",
+  "Filter by category": "按分类筛选",
+  "Launch and market what you build": "发布并推广你的作品",
+  "Loading account": "正在加载账户",
+  "MCP server": "MCP 服务器",
+  "Model providers": "模型服务商",
+  "Open this release on GitHub": "在 GitHub 上查看这个版本",
+  "Organize your day": "安排你的一天",
+  "Parallel sub-agents": "并行子智能体",
+  "Refresh connectors": "刷新连接器",
+  "Run product from your desktop": "在桌面上运营产品",
+  "SSH remotes": "SSH 远程主机",
+  "Search all connectors": "搜索全部连接器",
+  "Search installed connectors": "搜索已安装的连接器",
+  "Ship a side project, then have Cline generate": "发布一个副业项目：让 Cline 生成预告图和视频、上传到 YouTube，并写好 LinkedIn 与 Reddit 的发布帖。",
+  "Start with a morning brief": "从一份晨间简报开始：Cline 会读取隔夜的邮件和 Slack 讨论，列出今天的日程，起草需要你回复的内容，并标出每场会议前要准备的事项。",
+  "Streaming not supported": "不支持流式传输",
+  "Summarize the conversation to free up context": "总结对话以释放上下文",
+  "Switched to browser speech recognition": "已切换到浏览器语音识别",
+  "The app stays on your laptop": "应用留在你的笔记本上，Cline 在你任何能 SSH 登录的机器上干活。",
+  "The selected model does not report reasoning support": "所选模型未声明支持推理",
+  "The voice provider could not be reached": "无法连接语音服务商。请点击麦克风按钮，重说一遍缺失的内容。浏览器识别可能还需要联网。",
+  "Turn a Notion spec into scoped Linear issues": "把 Notion 里的规格说明拆成范围明确的 Linear issue，随开发进展持续更新，并直接在 Cline 里把每周进展发到 Slack。",
+  "Uncommitted changes": "未提交的更改",
+  "Work anywhere, in parallel": "随处并行工作",
+  "Your branch's PR, merge state, and CI checks": "你的分支对应的 PR、合并状态与 CI 检查，直接显示在输入框旁。",
+  "Delegate several tasks in one session": "在一个会话里委派多个任务，它们会同时运行。"
 };
 
 const candidates = extracted.missing.map((m) => m.text);
